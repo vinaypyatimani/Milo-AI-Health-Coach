@@ -9,8 +9,6 @@ except ImportError:
 
 ROOT = Path(__file__).resolve().parent.parent # This is for the project main folder
 
-print(ROOT)
-
 MILO_MODEL = os.getenv("MILO_MODEL", "openai/gpt-6-luna")
 JUDGE_MODEL = os.getenv("JUDGE_MODEL", MILO_MODEL)
 TEMPERATURE = float(os.getenv("MILO_TEMPERATURE", "0.4"))

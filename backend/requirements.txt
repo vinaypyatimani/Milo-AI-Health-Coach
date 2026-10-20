@@ -6,3 +6,4 @@ litellm>=1.101
 gpxpy>=1.6
 fitdecode>=0.10
 python-dotenv>=1.0
+tzdata>=2024.1

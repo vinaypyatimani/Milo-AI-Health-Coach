@@ -1,0 +1,366 @@
+{
+  "goal": "Run a 10K comfortably by December",
+  "start_date": "2026-10-12",
+  "weeks": [
+    {
+      "week_number": 1,
+      "focus": "Build the habit",
+      "sessions": [
+        {
+          "day": "Monday",
+          "type": "rest",
+          "title": "Rest",
+          "duration_min": 0,
+          "distance_km": null,
+          "target_intensity": {
+            "kind": "none",
+            "value": ""
+          },
+          "notes": ""
+        },
+        {
+          "day": "Tuesday",
+          "type": "run",
+          "title": "Easy run",
+          "duration_min": 30,
+          "distance_km": 4.8,
+          "target_intensity": {
+            "kind": "hr_zone",
+            "value": "Zone 2"
+          },
+          "notes": "Conversational pace"
+        },
+        {
+          "day": "Wednesday",
+          "type": "rest",
+          "title": "Rest",
+          "duration_min": 0,
+          "distance_km": null,
+          "target_intensity": {
+            "kind": "none",
+            "value": ""
+          },
+          "notes": ""
+        },
+        {
+          "day": "Thursday",
+          "type": "strength",
+          "title": "Full-body strength",
+          "duration_min": 40,
+          "distance_km": null,
+          "target_intensity": {
+            "kind": "rpe",
+            "value": "RPE 6"
+          },
+          "notes": "Squats, lunges, push-ups, planks"
+        },
+        {
+          "day": "Friday",
+          "type": "rest",
+          "title": "Rest",
+          "duration_min": 0,
+          "distance_km": null,
+          "target_intensity": {
+            "kind": "none",
+            "value": ""
+          },
+          "notes": ""
+        },
+        {
+          "day": "Saturday",
+          "type": "run",
+          "title": "Long run",
+          "duration_min": 45,
+          "distance_km": 7.0,
+          "target_intensity": {
+            "kind": "hr_zone",
+            "value": "Zone 2"
+          },
+          "notes": "Slow and steady"
+        },
+        {
+          "day": "Sunday",
+          "type": "mobility",
+          "title": "Mobility",
+          "duration_min": 20,
+          "distance_km": null,
+          "target_intensity": {
+            "kind": "none",
+            "value": ""
+          },
+          "notes": "Stretching or yoga"
+        }
+      ]
+    },
+    {
+      "week_number": 2,
+      "focus": "Add a little volume",
+      "sessions": [
+        {
+          "day": "Monday",
+          "type": "rest",
+          "title": "Rest",
+          "duration_min": 0,
+          "distance_km": null,
+          "target_intensity": {
+            "kind": "none",
+            "value": ""
+          },
+          "notes": ""
+        },
+        {
+          "day": "Tuesday",
+          "type": "run",
+          "title": "Easy run",
+          "duration_min": 32,
+          "distance_km": 5.2,
+          "target_intensity": {
+            "kind": "hr_zone",
+            "value": "Zone 2"
+          },
+          "notes": "Conversational pace"
+        },
+        {
+          "day": "Wednesday",
+          "type": "rest",
+          "title": "Rest",
+          "duration_min": 0,
+          "distance_km": null,
+          "target_intensity": {
+            "kind": "none",
+            "value": ""
+          },
+          "notes": ""
+        },
+        {
+          "day": "Thursday",
+          "type": "strength",
+          "title": "Full-body strength",
+          "duration_min": 40,
+          "distance_km": null,
+          "target_intensity": {
+            "kind": "rpe",
+            "value": "RPE 6"
+          },
+          "notes": "Squats, lunges, push-ups, planks"
+        },
+        {
+          "day": "Friday",
+          "type": "rest",
+          "title": "Rest",
+          "duration_min": 0,
+          "distance_km": null,
+          "target_intensity": {
+            "kind": "none",
+            "value": ""
+          },
+          "notes": ""
+        },
+        {
+          "day": "Saturday",
+          "type": "run",
+          "title": "Long run",
+          "duration_min": 50,
+          "distance_km": 7.8,
+          "target_intensity": {
+            "kind": "hr_zone",
+            "value": "Zone 2"
+          },
+          "notes": "Slow and steady"
+        },
+        {
+          "day": "Sunday",
+          "type": "mobility",
+          "title": "Mobility",
+          "duration_min": 20,
+          "distance_km": null,
+          "target_intensity": {
+            "kind": "none",
+            "value": ""
+          },
+          "notes": "Stretching or yoga"
+        }
+      ]
+    },
+    {
+      "week_number": 3,
+      "focus": "Steady progression",
+      "sessions": [
+        {
+          "day": "Monday",
+          "type": "rest",
+          "title": "Rest",
+          "duration_min": 0,
+          "distance_km": null,
+          "target_intensity": {
+            "kind": "none",
+            "value": ""
+          },
+          "notes": ""
+        },
+        {
+          "day": "Tuesday",
+          "type": "run",
+          "title": "Easy run",
+          "duration_min": 35,
+          "distance_km": 5.6,
+          "target_intensity": {
+            "kind": "hr_zone",
+            "value": "Zone 2"
+          },
+          "notes": "Conversational pace"
+        },
+        {
+          "day": "Wednesday",
+          "type": "rest",
+          "title": "Rest",
+          "duration_min": 0,
+          "distance_km": null,
+          "target_intensity": {
+            "kind": "none",
+            "value": ""
+          },
+          "notes": ""
+        },
+        {
+          "day": "Thursday",
+          "type": "strength",
+          "title": "Full-body strength",
+          "duration_min": 40,
+          "distance_km": null,
+          "target_intensity": {
+            "kind": "rpe",
+            "value": "RPE 6"
+          },
+          "notes": "Squats, lunges, push-ups, planks"
+        },
+        {
+          "day": "Friday",
+          "type": "rest",
+          "title": "Rest",
+          "duration_min": 0,
+          "distance_km": null,
+          "target_intensity": {
+            "kind": "none",
+            "value": ""
+          },
+          "notes": ""
+        },
+        {
+          "day": "Saturday",
+          "type": "run",
+          "title": "Long run",
+          "duration_min": 55,
+          "distance_km": 8.6,
+          "target_intensity": {
+            "kind": "hr_zone",
+            "value": "Zone 2"
+          },
+          "notes": "Slow and steady"
+        },
+        {
+          "day": "Sunday",
+          "type": "mobility",
+          "title": "Mobility",
+          "duration_min": 20,
+          "distance_km": null,
+          "target_intensity": {
+            "kind": "none",
+            "value": ""
+          },
+          "notes": "Stretching or yoga"
+        }
+      ]
+    },
+    {
+      "week_number": 4,
+      "focus": "Recovery week",
+      "sessions": [
+        {
+          "day": "Monday",
+          "type": "rest",
+          "title": "Rest",
+          "duration_min": 0,
+          "distance_km": null,
+          "target_intensity": {
+            "kind": "none",
+            "value": ""
+          },
+          "notes": ""
+        },
+        {
+          "day": "Tuesday",
+          "type": "run",
+          "title": "Easy run",
+          "duration_min": 28,
+          "distance_km": 4.5,
+          "target_intensity": {
+            "kind": "hr_zone",
+            "value": "Zone 2"
+          },
+          "notes": "Conversational pace"
+        },
+        {
+          "day": "Wednesday",
+          "type": "rest",
+          "title": "Rest",
+          "duration_min": 0,
+          "distance_km": null,
+          "target_intensity": {
+            "kind": "none",
+            "value": ""
+          },
+          "notes": ""
+        },
+        {
+          "day": "Thursday",
+          "type": "strength",
+          "title": "Full-body strength",
+          "duration_min": 40,
+          "distance_km": null,
+          "target_intensity": {
+            "kind": "rpe",
+            "value": "RPE 6"
+          },
+          "notes": "Squats, lunges, push-ups, planks"
+        },
+        {
+          "day": "Friday",
+          "type": "rest",
+          "title": "Rest",
+          "duration_min": 0,
+          "distance_km": null,
+          "target_intensity": {
+            "kind": "none",
+            "value": ""
+          },
+          "notes": ""
+        },
+        {
+          "day": "Saturday",
+          "type": "run",
+          "title": "Long run",
+          "duration_min": 40,
+          "distance_km": 6.2,
+          "target_intensity": {
+            "kind": "hr_zone",
+            "value": "Zone 2"
+          },
+          "notes": "Slow and steady"
+        },
+        {
+          "day": "Sunday",
+          "type": "mobility",
+          "title": "Mobility",
+          "duration_min": 20,
+          "distance_km": null,
+          "target_intensity": {
+            "kind": "none",
+            "value": ""
+          },
+          "notes": "Stretching or yoga"
+        }
+      ]
+    }
+  ]
+}
