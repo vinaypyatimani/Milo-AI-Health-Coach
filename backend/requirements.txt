@@ -1,0 +1,8 @@
+fastapi>=0.115
+uvicorn[standard]>=0.30
+python-multipart>=0.0.9
+pydantic>=2.7
+litellm>=1.101
+gpxpy>=1.6
+fitdecode>=0.10
+python-dotenv>=1.0

@@ -1,0 +1,14 @@
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+# Secrets and personal health data: never commit these
+.env
+backend/data/
+*.db
+backend/evaluation/results/
+# Node
+frontend/node_modules/
+frontend/dist/
+frontend/dist-demo/
