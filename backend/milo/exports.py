@@ -1,0 +1,202 @@
+"""Download the plan as a PDF (to read or print) or an Excel file (to track offline)."""
+from __future__ import annotations
+
+from io import BytesIO
+
+from .schemas import DAYS, NutritionPlan, PlannedSession, TrainingPlan, UserProfile
+
+ACCENT = "2F54EB"
+
+
+def _target(s: PlannedSession) -> str:
+    return s.target_intensity.value if s.target_intensity.kind != "none" else ""
+
+
+def _sessions(plan: TrainingPlan):
+    """Every day of every week, rest days included, in calendar order."""
+    for w in plan.weeks:
+        by_day = {s.day: s for s in w.sessions}
+        for day in DAYS:
+            s = by_day.get(day)
+            yield w, day, plan.session_date(w.week_number, day), s
+
+
+# ---------------------------------------------------------------------------
+# Excel
+# ---------------------------------------------------------------------------
+def plan_to_xlsx(plan: TrainingPlan, profile: UserProfile | None = None) -> bytes:
+    from openpyxl import Workbook
+    from openpyxl.styles import Alignment, Font, PatternFill
+    from openpyxl.utils import get_column_letter
+    from openpyxl.worksheet.datavalidation import DataValidation
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Plan"
+    head_font = Font(bold=True, color="FFFFFF")
+    head_fill = PatternFill("solid", fgColor=ACCENT)
+    week_fill = PatternFill("solid", fgColor="EEF2FF")
+
+    ws.append([plan.goal])
+    ws["A1"].font = Font(bold=True, size=14)
+    ws.append([f"Starts {plan.start_date.isoformat()}" + (f" · {profile.name}" if profile and profile.name else "")])
+    ws.append([])
+    headers = ["Week", "Day", "Date", "Session", "Type", "Planned (min)", "Distance (km)",
+               "Target", "Notes", "Done?", "Actual (min)", "How it felt"]
+    ws.append(headers)
+    header_row = ws.max_row
+    for cell in ws[header_row]:
+        cell.font, cell.fill = head_font, head_fill
+        cell.alignment = Alignment(vertical="center")
+
+    for w, day, date, s in _sessions(plan):
+        rest = s is None or s.type == "rest"
+        ws.append([
+            w.week_number, day, date,
+            "Rest" if rest else s.title, "" if rest else s.type,
+            None if rest else s.duration_min, None if rest or s.distance_km is None else s.distance_km,
+            "" if rest else _target(s), "" if rest else s.notes,
+            "" if rest else None, None, None,
+        ])
+        row = ws.max_row
+        ws.cell(row, 3).number_format = "ddd d mmm"
+        if w.week_number % 2 == 0:
+            for c in range(1, 10):
+                ws.cell(row, c).fill = week_fill
+        if rest:
+            for c in range(1, 10):
+                ws.cell(row, c).font = Font(color="8A94A6")
+
+    # "Done?" is a dropdown so the sheet works as an offline tracker.
+    dv = DataValidation(type="list", formula1='"Yes,No,Moved"', allow_blank=True)
+    ws.add_data_validation(dv)
+    dv.add(f"J{header_row + 1}:J{ws.max_row}")
+
+    widths = [7, 11, 13, 24, 10, 13, 13, 16, 34, 9, 12, 24]
+    for i, wdt in enumerate(widths, start=1):
+        ws.column_dimensions[get_column_letter(i)].width = wdt
+    ws.freeze_panes = ws.cell(header_row + 1, 1)
+    ws.auto_filter.ref = f"A{header_row}:L{ws.max_row}"
+
+    if plan.nutrition:
+        _nutrition_sheet(wb.create_sheet("Nutrition"), plan.nutrition, head_font, head_fill)
+
+    buf = BytesIO()
+    wb.save(buf)
+    return buf.getvalue()
+
+
+def _nutrition_sheet(ws, n: NutritionPlan, head_font, head_fill) -> None:
+    from openpyxl.styles import Alignment, Font
+
+    wrap = Alignment(wrap_text=True, vertical="top")
+    ws.append(["Nutrition"])
+    ws["A1"].font = Font(bold=True, size=14)
+    if n.summary:
+        ws.append([n.summary])
+    ws.append([])
+    if n.principles:
+        ws.append(["Principles"])
+        ws.cell(ws.max_row, 1).font = Font(bold=True)
+        for p in n.principles:
+            ws.append([f"• {p}"])
+        ws.append([])
+    for title, meals in (("Training day", n.training_day), ("Rest day", n.rest_day)):
+        if not meals:
+            continue
+        ws.append([title, "When", "Suggestion"])
+        for c in ws[ws.max_row]:
+            c.font, c.fill = head_font, head_fill
+        for m in meals:
+            ws.append([m.meal, m.timing, m.suggestion])
+            for c in ws[ws.max_row]:
+                c.alignment = wrap
+        ws.append([])
+    if n.hydration:
+        ws.append(["Hydration", "", n.hydration])
+    if n.notes:
+        ws.append(["Notes", "", n.notes])
+    ws.column_dimensions["A"].width = 22
+    ws.column_dimensions["B"].width = 24
+    ws.column_dimensions["C"].width = 70
+
+
+# ---------------------------------------------------------------------------
+# PDF
+# ---------------------------------------------------------------------------
+def plan_to_pdf(plan: TrainingPlan, profile: UserProfile | None = None) -> bytes:
+    from reportlab.lib import colors
+    from reportlab.lib.pagesizes import A4, landscape
+    from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+    from reportlab.lib.units import mm
+    from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+
+    buf = BytesIO()
+    doc = SimpleDocTemplate(buf, pagesize=landscape(A4), leftMargin=16 * mm, rightMargin=16 * mm,
+                            topMargin=14 * mm, bottomMargin=14 * mm, title=plan.goal, author="Milo")
+    ss = getSampleStyleSheet()
+    h1 = ParagraphStyle("h1", parent=ss["Heading1"], fontSize=18, spaceAfter=2)
+    h2 = ParagraphStyle("h2", parent=ss["Heading2"], fontSize=12, spaceBefore=10, spaceAfter=4,
+                        textColor=colors.HexColor("#" + ACCENT))
+    body = ParagraphStyle("b", parent=ss["BodyText"], fontSize=8.5, leading=11)
+    small = ParagraphStyle("s", parent=body, textColor=colors.HexColor("#6B7385"))
+
+    def P(text: str, style=body) -> Paragraph:
+        safe = (text or "").replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+        return Paragraph(safe, style)
+
+    story = [P(plan.goal, h1),
+             P(f"{len(plan.weeks)} weeks from {plan.start_date.strftime('%d %b %Y')}"
+               + (f" · {profile.name}" if profile and profile.name else "") + " · made with Milo", small)]
+
+    for w in plan.weeks:
+        story.append(P(f"Week {w.week_number}" + (f" — {w.focus}" if w.focus else ""), h2))
+        rows = [[P(x, small) for x in ("Day", "Date", "Session", "Time", "Distance", "Target", "Notes", "Done")]]
+        by_day = {s.day: s for s in w.sessions}
+        for day in DAYS:
+            s = by_day.get(day)
+            d = plan.session_date(w.week_number, day).strftime("%d %b")
+            if s is None or s.type == "rest":
+                rows.append([P(day), P(d), P("Rest", small), "", "", "", "", ""])
+            else:
+                rows.append([P(day), P(d), P(s.title), P(f"{s.duration_min:g} min"),
+                             P(f"{s.distance_km:g} km" if s.distance_km else ""), P(_target(s)), P(s.notes), "[  ]"])
+        t = Table(rows, colWidths=[22 * mm, 16 * mm, 45 * mm, 18 * mm, 18 * mm, 28 * mm, 100 * mm, 12 * mm],
+                  repeatRows=1)
+        t.setStyle(TableStyle([
+            ("LINEBELOW", (0, 0), (-1, 0), 0.8, colors.HexColor("#" + ACCENT)),
+            ("LINEBELOW", (0, 1), (-1, -1), 0.25, colors.HexColor("#E3E7EF")),
+            ("VALIGN", (0, 0), (-1, -1), "TOP"),
+            ("TOPPADDING", (0, 0), (-1, -1), 3), ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+            ("ALIGN", (-1, 1), (-1, -1), "CENTER"),
+        ]))
+        story.append(t)
+
+    n = plan.nutrition
+    if n:
+        story += [Spacer(1, 6 * mm), P("Nutrition", h1)]
+        if n.summary:
+            story.append(P(n.summary))
+        for p in n.principles:
+            story.append(P(f"• {p}"))
+        for title, meals in (("Training day", n.training_day), ("Rest day", n.rest_day)):
+            if meals:
+                story.append(P(title, h2))
+                t = Table([[P("Meal", small), P("When", small), P("Suggestion", small)]]
+                          + [[P(m.meal), P(m.timing), P(m.suggestion)] for m in meals],
+                          colWidths=[40 * mm, 45 * mm, 175 * mm])
+                t.setStyle(TableStyle([
+                    ("LINEBELOW", (0, 0), (-1, 0), 0.8, colors.HexColor("#" + ACCENT)),
+                    ("LINEBELOW", (0, 1), (-1, -1), 0.25, colors.HexColor("#E3E7EF")),
+                    ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                ]))
+                story.append(t)
+        if n.hydration:
+            story += [P("Hydration", h2), P(n.hydration)]
+        if n.notes:
+            story += [Spacer(1, 3 * mm), P(n.notes, small)]
+
+    story += [Spacer(1, 6 * mm),
+              P("Milo is a coach, not a doctor. For pain, symptoms or medical conditions, see a professional.", small)]
+    doc.build(story)
+    return buf.getvalue()

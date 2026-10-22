@@ -5,8 +5,8 @@
  * and streamed word by word like the real thing.
  */
 import type {
-  ActivityItem, ChatMessage, ChatTarget, ManualActivity, PlanResponse, Profile, ProgressWeek,
-  StreamDone, StreamHandlers, TrainingPlan, UploadReport, WeekMetrics,
+  ActivityItem, ChatMessage, ChatTarget, ManualActivity, NutritionPlan, PlanResponse, Profile, ProgressWeek,
+  StreamDone, StreamHandlers, TrainingPlan, UploadReport, Usage, WeekMetrics,
 } from "./types";
 import data from "./demoData";
 
@@ -20,7 +20,39 @@ let activities: ActivityItem[] = data.activities as unknown as ActivityItem[];
 const metrics = data.metrics as unknown as Record<string, WeekMetrics>;
 
 const PLAN_REPLY =
-  "Here's your 4-week plan. Two runs a week build your aerobic base: an easy run on Tuesday and a long run on Saturday, both in **Zone 2** (an easy pace where you can still hold a conversation). Thursday is full-body strength to protect your knees and hips, and Sunday is light mobility. Week 4 is lighter so your body can absorb the work.\n\nTell me if anything should change.";
+  "Here's your 4-week plan. Two runs a week build your aerobic base: an easy run on Tuesday and a long run on Saturday, both in **Zone 2** (an easy pace where you can still hold a conversation). Thursday is full-body strength to protect your knees and hips, and Sunday is light mobility. Week 4 is lighter so your body can absorb the work.\n\nWould you also like a simple nutrition plan to go with your training?";
+
+const NUTRITION_REPLY =
+  "Done, your plan now includes a simple nutrition guide: a balanced plate at each meal, a carb-rich snack before your long run, and protein soon after strength sessions. It's in the plan below and in the downloads.\n\nThis is general guidance, not a diet. If you have a medical condition, a registered dietitian can tailor it.";
+
+const NUTRITION: NutritionPlan = {
+  summary: "Eat regular, balanced meals and fuel the harder sessions. No counting needed.",
+  principles: [
+    "Half the plate vegetables, a quarter protein, a quarter whole grains",
+    "A palm-sized portion of protein at every meal",
+    "Eat something light 1–2 hours before runs",
+  ],
+  training_day: [
+    { meal: "Breakfast", timing: "7:00", suggestion: "Oats with yogurt, berries and a handful of nuts" },
+    { meal: "Pre-run snack", timing: "1–2 h before", suggestion: "Banana or toast with honey" },
+    { meal: "After training", timing: "within 1 h", suggestion: "Rice bowl with chicken or tofu and vegetables" },
+    { meal: "Dinner", timing: "19:00", suggestion: "Salmon or lentils, potatoes, a big salad" },
+  ],
+  rest_day: [
+    { meal: "Breakfast", timing: "", suggestion: "Eggs on wholegrain toast with tomatoes" },
+    { meal: "Lunch", timing: "", suggestion: "Bean soup with bread" },
+    { meal: "Dinner", timing: "", suggestion: "Stir-fry with vegetables and noodles" },
+  ],
+  hydration: "Drink water through the day; a glass before and after each session.",
+  notes: "General guidance, not medical advice.",
+};
+
+/** Pretend usage, sized like the real model's (about 4 characters per token). */
+function usageFor(conv: ChatMessage[], reply: string): Usage {
+  const input = 2600 + Math.round(conv.reduce((n, m) => n + m.content.length, 0) / 4);
+  const output = Math.round(reply.length / 4) + 180;
+  return { model: "openai/gpt-6-luna", input_tokens: input, output_tokens: output, cost_usd: input * 1e-7 + output * 5e-7, estimated: false };
+}
 
 const COACHING_SCRIPT = [
   "Hi, I'm Milo. I'll ask a few questions to build a plan that fits your life. What's your main goal right now?",
@@ -48,6 +80,10 @@ const conversations: Record<string, ChatMessage[]> = {
     { role: "assistant", content: PLAN_REPLY, plan_saved: true },
   ],
 };
+{
+  const c = conversations.coaching;
+  c.forEach((m, i) => { if (m.role === "assistant") m.usage = usageFor(c.slice(0, i), m.content); });
+}
 const steps: Record<string, number> = { coaching: COACHING_SCRIPT.length };
 
 const URGENT = /chest|faint|dizz|breath/i;
@@ -98,6 +134,12 @@ export const mockApi = {
     let saved = false;
     if (urgent) {
       reply = "Thank you for telling me. Chest tightness or dizziness during exercise needs a doctor's check before you train again, even if you feel fine now. Please pause your training and book an appointment. I'll keep your plan as it is until you have the all-clear.";
+    } else if (t.mode === "coaching" && plan && text && /nutrition|^yes/i.test(text) && !/^no/i.test(text)) {
+      reply = NUTRITION_REPLY; saved = true;
+      plan = { ...clone(plan), nutrition: NUTRITION };
+      history = [{ id: history.length + 1, created_at: "2026-10-19T19:40:00", reason: "nutrition added" }, ...history];
+    } else if (t.mode === "coaching" && plan && text && /^no/i.test(text)) {
+      reply = "No problem. You can add it later from the plan page. Anything else you'd like to change?";
     } else if (t.mode === "coaching") {
       const step = steps[key] ?? 0;
       if (step < COACHING_SCRIPT.length) reply = COACHING_SCRIPT[step];
@@ -113,7 +155,7 @@ export const mockApi = {
       if (saved) applyWeek2Changes();
     }
     await streamText(reply, handlers);
-    const message: ChatMessage = { role: "assistant", content: reply, plan_saved: saved };
+    const message: ChatMessage = { role: "assistant", content: reply, plan_saved: saved, usage: usageFor(conv, reply) };
     conv.push(message);
     return { reply, plan_saved: saved, plan_error: null, safety: [], urgent_banner: urgent, message };
   },
@@ -145,6 +187,18 @@ export const mockApi = {
   deleteActivity: async (id: number) => { activities = activities.filter((a) => a.id !== id); return { ok: true }; },
 
   progress: async () => data.progress as unknown as ProgressWeek[],
+  clearPlan: async () => {
+    await wait(200);
+    plan = null; history = [];
+    for (const k of Object.keys(conversations)) { delete conversations[k]; delete steps[k]; }
+    return { ok: true };
+  },
+  clearConversation: async (t: ChatTarget) => {
+    const key = t.mode === "coaching" ? "coaching" : `checkin:${t.week}`;
+    delete conversations[key]; delete steps[key];
+    return { ok: true };
+  },
+  exportUrl: (fmt: "pdf" | "xlsx") => `#download-${fmt}`,
   deleteAll: async () => {
     await wait(300);
     plan = null; activities = []; profile = null; history = [];

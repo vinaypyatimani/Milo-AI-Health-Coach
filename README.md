@@ -37,13 +37,13 @@ milo-coach/
 │   │   └── prompts/            coach_system.md, judge.md
 │   ├── evaluation/             scenarios, LLM-as-a-judge, hallucinated-number check
 │   ├── scripts/                sample data generator, demo seeding
-│   └── tests/                  37 tests, run without an API key
+│   └── tests/                  43 tests, run without an API key
 ├── frontend/
 │   └── src/
-│       ├── App.tsx             shell: top bar, pages, Milo dock
-│       ├── chat/               Milo dock: streaming conversation, auto-scrolling messages
-│       ├── modules/            reusable cards: week strip, stats, plan grid, uploads, chart
-│       ├── pages/              Week, Plan, Data, Progress, Profile
+│       ├── App.tsx             shell: top bar, pages, start over
+│       ├── chat/               central chat: start button, streaming, usage meter, start over
+│       ├── modules/            week strip, stats, plan days, nutrition, uploads, chart
+│       ├── pages/              Plan (start page), Week, Data, Progress, Profile
 │       ├── lib/                API client, streaming (SSE), data cache, routing, plan diff
 │       └── styles/             design tokens, shell, modules, chat
 ├── sample_data/                synthetic tracker files (no real health data)
@@ -159,6 +159,9 @@ Interactive docs at `/docs`.
 | POST | `/api/activities/upload` | Upload tracker files (multipart) |
 | POST | `/api/activities/manual`, `/api/recovery` | Manual entry |
 | GET | `/api/progress` | Per-week summary for charts |
+| GET | `/api/plan/export.pdf`, `/api/plan/export.xlsx` | Download the plan (PDF to print, Excel to track offline) |
+| DELETE | `/api/plan` | Start over and clear the plan (plan versions + conversations; profile and activities stay) |
+| DELETE | `/api/conversations/{mode}` | Start over and keep the plan (`?week=N` for a check-in) |
 | DELETE | `/api/data` | Delete everything (GDPR) |
 
 ---

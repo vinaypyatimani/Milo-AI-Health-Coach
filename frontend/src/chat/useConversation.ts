@@ -6,6 +6,20 @@ import type { ChatMessage, ChatTarget } from "../lib/types";
 export const conversationKey = (t: ChatTarget) =>
   t.mode === "coaching" ? "conv:coaching" : `conv:checkin:${t.week}`;
 
+/** Total tokens and cost of a conversation, from the usage saved on each reply. */
+export function totalUsage(messages: ChatMessage[]) {
+  let tokens = 0, cost = 0, estimated = false, priced = true, model = "";
+  for (const m of messages) {
+    const u = m.usage;
+    if (!u) continue;
+    tokens += u.input_tokens + u.output_tokens;
+    if (u.cost_usd == null) priced = false; else cost += u.cost_usd;
+    estimated ||= u.estimated;
+    model = u.model;
+  }
+  return { tokens, cost: priced ? cost : null, estimated, model };
+}
+
 /**
  * Everything one conversation needs: saved messages (cached, so switching
  * pages keeps the chat instantly), the reply being streamed right now,
@@ -24,7 +38,7 @@ export function useConversation(target: ChatTarget, onPlanSaved: () => void) {
     setError(null);
     setStatus(null);
     setStreaming("");
-    if (text === null) setQueryData<ChatMessage[]>(key, []);
+    if (text === null) { setQueryData<ChatMessage[]>(key, []); setUrgent(null); }
     else setQueryData<ChatMessage[]>(key, [...(getQueryData<ChatMessage[]>(key) ?? []), { role: "user", content: text }]);
     try {
       const done = await api.chatStream(target, text, {
@@ -46,15 +60,21 @@ export function useConversation(target: ChatTarget, onPlanSaved: () => void) {
     }
   };
 
+  const messages = data ?? [];
   return {
-    messages: data ?? [],
+    messages,
     loading: !data && !loadError,
     busy: streaming !== null,
     streaming,
     status,
     error: error ?? loadError?.message ?? null,
     urgent,
+    usage: totalUsage(messages),
     start: () => run(null),
     send: (text: string) => run(text),
+    /** Forget the local state after the conversation was cleared on the server. */
+    reset: () => { setError(null); setUrgent(null); setQueryData<ChatMessage[]>(key, []); },
   };
 }
+
+export type Conversation = ReturnType<typeof useConversation>;

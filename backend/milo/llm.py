@@ -10,6 +10,7 @@ import time
 from typing import Callable, Iterator
 
 from . import config
+from .pricing import make_usage, rough_tokens
 
 Message = dict  # {"role": "system" | "user" | "assistant", "content": str}
 
@@ -45,13 +46,27 @@ def build_params(model: str, temperature: float) -> dict:
     return params
 
 
+def _estimate(messages: list[Message], reply: str) -> tuple[int, int]:
+    return rough_tokens("".join(m["content"] for m in messages)), rough_tokens(reply)
+
+
+def _record(usage: dict | None, model: str, inp: int, out: int, estimated: bool) -> None:
+    if usage is not None:
+        usage.clear()
+        usage.update(make_usage(model, inp, out, estimated))
+
+
 def chat(messages: list[Message], model: str | None = None,
-         temperature: float | None = None, retries: int = 3) -> str:
+         temperature: float | None = None, retries: int = 3,
+         usage: dict | None = None) -> str:
+    """One model call. Pass a dict as `usage` to receive tokens and cost."""
     model = model or config.MILO_MODEL
     temperature = config.TEMPERATURE if temperature is None else temperature
 
     if _override is not None:
-        return _override(messages, model, temperature)
+        reply = _override(messages, model, temperature)
+        _record(usage, model, *_estimate(messages, reply), estimated=True)
+        return reply
 
     import litellm  # imported lazily: it is slow to import
 
@@ -60,7 +75,13 @@ def chat(messages: list[Message], model: str | None = None,
     for attempt in range(retries):
         try:
             response = litellm.completion(messages=messages, **params)
-            return response.choices[0].message.content or ""
+            reply = response.choices[0].message.content or ""
+            u = getattr(response, "usage", None)
+            if u and getattr(u, "prompt_tokens", None) is not None:
+                _record(usage, model, u.prompt_tokens, u.completion_tokens or 0, estimated=False)
+            else:
+                _record(usage, model, *_estimate(messages, reply), estimated=True)
+            return reply
         except (litellm.AuthenticationError, litellm.BadRequestError, litellm.NotFoundError) as e:
             # Wrong key, unsupported parameter or unknown model: retrying won't help.
             raise LLMError(f"{model}: {e}") from e
@@ -74,7 +95,8 @@ def chat(messages: list[Message], model: str | None = None,
 
 
 def chat_stream(messages: list[Message], model: str | None = None,
-                temperature: float | None = None, retries: int = 3) -> Iterator[str]:
+                temperature: float | None = None, retries: int = 3,
+                usage: dict | None = None) -> Iterator[str]:
     """Like chat(), but yields the reply in small pieces as the model writes it.
 
     The user sees the first words after a second or two instead of waiting for
@@ -85,7 +107,9 @@ def chat_stream(messages: list[Message], model: str | None = None,
     temperature = config.TEMPERATURE if temperature is None else temperature
 
     if _override is not None:  # tests: stream the fake reply word by word
-        yield from re.findall(r"\S+\s*|\s+", _override(messages, model, temperature))
+        reply = _override(messages, model, temperature)
+        yield from re.findall(r"\S+\s*|\s+", reply)
+        _record(usage, model, *_estimate(messages, reply), estimated=True)
         return
 
     import litellm
@@ -94,13 +118,25 @@ def chat_stream(messages: list[Message], model: str | None = None,
     last_error: Exception | None = None
     for attempt in range(retries):
         started = False
+        parts: list[str] = []
+        reported = None
         try:
-            for chunk in litellm.completion(messages=messages, stream=True, **params):
+            # include_usage: the provider sends token counts in the last chunk
+            for chunk in litellm.completion(messages=messages, stream=True, drop_params=True,
+                                            stream_options={"include_usage": True}, **params):
+                u = getattr(chunk, "usage", None)
+                if u and getattr(u, "prompt_tokens", None):
+                    reported = u
                 choices = getattr(chunk, "choices", None) or []
                 delta = getattr(choices[0].delta, "content", None) if choices else None
                 if delta:
                     started = True
+                    parts.append(delta)
                     yield delta
+            if reported is not None:
+                _record(usage, model, reported.prompt_tokens, reported.completion_tokens or 0, estimated=False)
+            else:
+                _record(usage, model, *_estimate(messages, "".join(parts)), estimated=True)
             return
         except (litellm.AuthenticationError, litellm.BadRequestError, litellm.NotFoundError) as e:
             raise LLMError(f"{model}: {e}") from e

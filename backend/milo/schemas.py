@@ -55,10 +55,27 @@ class PlanWeek(BaseModel):
     sessions: list[PlannedSession]
 
 
+class Meal(BaseModel):
+    meal: str                      # e.g. "Breakfast", "Before training"
+    timing: str = ""               # e.g. "2-3 h before training"
+    suggestion: str = ""           # food-first, portion-based, no calorie targets
+
+
+class NutritionPlan(BaseModel):
+    """Optional nutrition guidance, added only when the user asks for it."""
+    summary: str = ""
+    principles: list[str] = Field(default_factory=list)
+    training_day: list[Meal] = Field(default_factory=list)
+    rest_day: list[Meal] = Field(default_factory=list)
+    hydration: str = ""
+    notes: str = ""
+
+
 class TrainingPlan(BaseModel):
     goal: str
     start_date: date
     weeks: list[PlanWeek]
+    nutrition: Optional[NutritionPlan] = None
 
     @field_validator("start_date")
     @classmethod

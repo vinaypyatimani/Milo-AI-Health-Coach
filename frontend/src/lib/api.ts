@@ -63,6 +63,14 @@ export const realApi = {
 
   progress: () => request<ProgressWeek[]>("/api/progress"),
   deleteAll: () => request<{ ok: boolean }>("/api/data", { method: "DELETE" }),
+
+  /** Start over: remove the plan (all versions) and every conversation. */
+  clearPlan: () => request<{ ok: boolean }>("/api/plan", { method: "DELETE" }),
+  /** Start over: clear one conversation, keep the plan. */
+  clearConversation: (t: ChatTarget) =>
+    request<{ ok: boolean }>(t.mode === "coaching" ? "/api/conversations/coaching" : `/api/conversations/checkin?week=${t.week}`, { method: "DELETE" }),
+  /** Link for downloading the plan as a PDF or an Excel file. */
+  exportUrl: (fmt: "pdf" | "xlsx") => `${BASE}/api/plan/export.${fmt}`,
 };
 
 export type Api = typeof realApi;

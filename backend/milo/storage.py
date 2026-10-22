@@ -156,6 +156,14 @@ class Storage:
         with self._tx() as c:
             c.execute("DELETE FROM conversations WHERE key = ?", (key,))
 
+    def delete_plans(self) -> None:
+        with self._tx() as c:
+            c.execute("DELETE FROM plans")
+
+    def delete_conversations(self) -> None:
+        with self._tx() as c:
+            c.execute("DELETE FROM conversations")
+
     # ---- GDPR: delete everything ---------------------------------------------
     def delete_all(self) -> None:
         with self._tx() as c:

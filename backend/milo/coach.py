@@ -16,7 +16,8 @@ from typing import Iterator
 
 from . import llm, safety
 from .metrics import compute_week_metrics, progress_overview
-from .plan_parser import parse_plan, strip_plan_block
+from .plan_parser import find_plan_block, parse_plan, strip_plan_block
+from .pricing import add_usage
 from .schemas import TrainingPlan, UserProfile
 from .storage import Storage
 
@@ -89,11 +90,13 @@ class Coach:
 
         system = self._system_prompt(mode, metrics)
         parts: list[str] = []
-        for piece in llm.chat_stream(self._llm_messages(system, conv)):
+        usage: dict = {}
+        for piece in llm.chat_stream(self._llm_messages(system, conv), usage=usage):
             parts.append(piece)
             yield {"type": "delta", "text": piece}
         raw = "".join(parts)
         plan, error = parse_plan(raw)
+        plan_source = raw  # the text the plan was read from
 
         if error:  # one repair attempt: show the model its mistake
             yield {"type": "status", "text": "Fixing the plan format…"}
@@ -102,18 +105,23 @@ class Coach:
                 {"role": "user", "content": f"[SYSTEM: {error}. Output the complete corrected "
                                             "plan JSON in a ```json block, nothing else.]"},
             ]
-            fixed = llm.chat(repair, temperature=0)
+            repair_usage: dict = {}
+            fixed = llm.chat(repair, temperature=0, usage=repair_usage)
+            usage = add_usage(usage, repair_usage) or {}
             plan, error = parse_plan(fixed)
+            plan_source = fixed
             if plan:
                 raw = strip_plan_block(raw) + "\n\n```json\n" + plan.model_dump_json(indent=2) + "\n```"
 
         plan_saved = False
         if plan and not urgent:
+            plan = self._keep_nutrition(plan, plan_source)
             self.store.save_plan(plan, reason=plan_reason)
             plan_saved = True
 
         display = strip_plan_block(raw) if plan or error else raw
-        msg = {"role": "assistant", "content": display, "raw": raw, "plan_saved": plan_saved}
+        msg = {"role": "assistant", "content": display, "raw": raw, "plan_saved": plan_saved,
+               "usage": usage or None}
         conv.append(msg)
         self.store.save_conversation(key, conv)
         yield {
@@ -124,8 +132,23 @@ class Coach:
             "safety": [f.__dict__ for f in flags],
             "urgent_banner": safety.URGENT_BANNER if urgent else None,
             "message": {"role": "assistant", "content": display,
-                        "plan_saved": plan_saved, "safety": []},
+                        "plan_saved": plan_saved, "safety": [], "usage": usage or None},
         }
+
+    def _keep_nutrition(self, plan: TrainingPlan, raw: str) -> TrainingPlan:
+        """If the model updated the training part but left out the "nutrition"
+        key, keep the existing nutrition plan. An explicit null removes it."""
+        if plan.nutrition is not None:
+            return plan
+        block = find_plan_block(raw)
+        try:
+            mentions_nutrition = block is not None and "nutrition" in json.loads(block)
+        except json.JSONDecodeError:
+            mentions_nutrition = False
+        current = self.store.get_plan()
+        if not mentions_nutrition and current and current.nutrition:
+            return plan.model_copy(update={"nutrition": current.nutrition})
+        return plan
 
     def _turn(self, key: str, mode: str, text: str, metrics: dict | None,
               hidden: bool = False, plan_reason: str = "") -> dict:
@@ -163,8 +186,19 @@ class Coach:
     def public_conversation(conv: list[dict]) -> list[dict]:
         return [{"role": m["role"], "content": m["content"],
                  "plan_saved": m.get("plan_saved", False),
-                 "safety": m.get("safety", [])}
+                 "safety": m.get("safety", []),
+                 "usage": m.get("usage")}
                 for m in conv if not m.get("hidden")]
+
+    # ---- starting over ---------------------------------------------------------
+    def clear_conversation(self, mode: str, week: int | None = None) -> None:
+        self.store.delete_conversation("coaching" if mode == "coaching" else f"checkin:{week}")
+
+    def clear_plan(self) -> None:
+        """Remove every plan version and all conversations (they refer to the plan).
+        Profile and tracker data stay."""
+        self.store.delete_plans()
+        self.store.delete_conversations()
 
     # ---- Coaching Mode ------------------------------------------------------
     def coaching_conversation(self) -> list[dict]:

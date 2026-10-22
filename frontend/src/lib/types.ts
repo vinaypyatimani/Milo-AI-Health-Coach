@@ -14,7 +14,19 @@ export interface PlannedSession {
 }
 
 export interface PlanWeek { week_number: number; focus: string; sessions: PlannedSession[] }
-export interface TrainingPlan { goal: string; start_date: string; weeks: PlanWeek[] }
+export interface Meal { meal: string; timing: string; suggestion: string }
+export interface NutritionPlan {
+  summary: string;
+  principles: string[];
+  training_day: Meal[];
+  rest_day: Meal[];
+  hydration: string;
+  notes: string;
+}
+export interface TrainingPlan { goal: string; start_date: string; weeks: PlanWeek[]; nutrition?: NutritionPlan | null }
+
+/** Tokens and cost of one reply (estimated when the provider reports nothing). */
+export interface Usage { model: string; input_tokens: number; output_tokens: number; cost_usd: number | null; estimated: boolean }
 
 export interface PlanResponse {
   plan: TrainingPlan | null;
@@ -29,6 +41,7 @@ export interface ChatMessage {
   content: string;
   plan_saved?: boolean;
   safety?: SafetyFlag[];
+  usage?: Usage | null;
 }
 
 export interface TurnResponse {

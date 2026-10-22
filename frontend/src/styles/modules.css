@@ -9,6 +9,7 @@
   background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg);
   padding: 18px 20px; min-width: 0;
 }
+.modules.section { border-top: 0; padding-top: 0; margin-top: 32px; }
 .card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
 .card-danger { border-color: color-mix(in srgb, var(--urgent) 30%, var(--line)); }
 
@@ -130,3 +131,33 @@ button.plan-week-cell:hover { background: var(--surface-2); }
 .chart .grid { stroke: var(--line); }
 .chart .planned { fill: none; stroke: var(--planned); stroke-width: 1.5; stroke-dasharray: 5 4; }
 .chart .actual { fill: var(--accent); }
+
+/* ---- plan: one week at a time, one line per day ------------------------------ */
+.plan-days-head { display: flex; align-items: center; justify-content: space-between; gap: 10px 16px; flex-wrap: wrap; }
+.plan-focus { margin-top: 14px; color: var(--ink-2); }
+.days { list-style: none; padding: 0; margin: 10px 0 0; }
+.days li { display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: 16px; padding: 12px 0; border-top: 1px solid var(--line); }
+.days li:first-child { border-top: 0; }
+.days li.is-new { background: linear-gradient(90deg, var(--new-soft), transparent 70%); margin: 0 -10px; padding-left: 10px; padding-right: 10px; border-radius: var(--r-sm); }
+.day-name { display: flex; flex-direction: column; font-weight: 600; font-size: 0.92rem; }
+.day-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.day-title { display: inline-flex; align-items: center; gap: 8px; font-weight: 500; }
+.is-rest .day-name { color: var(--muted); font-weight: 500; }
+.dot-new { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--new); margin-left: 5px; vertical-align: 2px; }
+
+/* ---- nutrition ----------------------------------------------------------------- */
+.nutrition { display: flex; flex-direction: column; gap: 16px; }
+.principles { margin: 0; padding-left: 18px; color: var(--ink-2); }
+.principles li + li { margin-top: 4px; }
+.meal-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; }
+.meals h3 { margin-bottom: 8px; }
+.meals dl { margin: 0; }
+.meals dl > div { padding: 9px 0; border-top: 1px solid var(--line); }
+.meals dt { font-weight: 500; font-size: 0.92rem; }
+.meals dd { margin: 2px 0 0; color: var(--ink-2); font-size: 0.92rem; }
+.offer { display: flex; align-items: center; justify-content: space-between; gap: 12px 20px; flex-wrap: wrap; }
+.offer p { max-width: 52ch; }
+@media (max-width: 640px) { .meal-cols { grid-template-columns: 1fr; gap: 12px; } }
+
+.history summary { cursor: pointer; color: var(--muted); font-size: 0.9rem; }
+.history .rows { margin-top: 12px; }

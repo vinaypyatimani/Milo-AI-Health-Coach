@@ -4,13 +4,30 @@ import type { PlanResponse } from "../lib/types";
 import { fmtRange, weekStart } from "../lib/format";
 import { navigate } from "../lib/router";
 import { Card, Segmented, Skeleton } from "../components/ui";
+import { ChatPanel } from "../chat/ChatPanel";
+import { useConversation } from "../chat/useConversation";
 import { WeekStrip } from "../modules/WeekStrip";
 import { WeekStats } from "../modules/WeekStats";
 import { DataWarnings, RecoveryCard, SessionsCard } from "../modules/WeekDetails";
 
-interface Props { plan: PlanResponse; week: number; changed: Set<string>; onCheckin: () => void }
+interface Props {
+  plan: PlanResponse;
+  week: number;
+  changed: Set<string>;
+  onPlanSaved: () => void;
+  onStartOver: (week: number, clearPlan: boolean) => Promise<void>;
+}
 
-export function WeekPage({ plan, week, changed, onCheckin }: Props) {
+function CheckinChat({ week, onPlanSaved, onStartOver }: Pick<Props, "week" | "onPlanSaved" | "onStartOver">) {
+  const conv = useConversation({ mode: "checkin", week }, onPlanSaved);
+  return (
+    <ChatPanel conv={conv} title={`Week ${week} check-in`} hasPlan onStartOver={(clear) => onStartOver(week, clear)}
+      intro={{ text: `Milo compares your tracker data with the plan for week ${week} and suggests what to change.`, button: "Check in with Milo" }}
+      placeholder="How did the week feel?" savedLabel="Plan updated" />
+  );
+}
+
+export function WeekPage({ plan, week, changed, onPlanSaved, onStartOver }: Props) {
   const p = plan.plan!;
   const current = plan.current_week ?? 1;
   const upcoming = week > current;
@@ -21,17 +38,17 @@ export function WeekPage({ plan, week, changed, onCheckin }: Props) {
     <div className="page">
       <header className="page-head">
         <div>
-          <p className="eyebrow-date">{fmtRange(weekStart(p.start_date, week))}{week === current ? ", this week" : upcoming ? ", coming up" : ""}</p>
-          <h1>Week {week}<span className="h1-sub">{w?.focus}</span></h1>
+          <p className="muted small">{fmtRange(weekStart(p.start_date, week))}{week === current ? " · this week" : upcoming ? " · coming up" : ""}</p>
+          <h1>Week {week}</h1>
+          {w?.focus && <p className="lede">{w.focus}</p>}
         </div>
-        <div className="head-actions">
-          <Segmented<number> label="Choose week" value={week} onChange={(n) => navigate({ page: "week", week: n })}
-            options={p.weeks.map((x) => ({ value: x.week_number, label: `W${x.week_number}` }))} />
-          {!upcoming && <button className="btn btn-primary" type="button" onClick={onCheckin}>Check in with Milo</button>}
-        </div>
+        <Segmented<number> label="Choose week" value={week} onChange={(n) => navigate({ page: "week", week: n })}
+          options={p.weeks.map((x) => ({ value: x.week_number, label: `W${x.week_number}` }))} />
       </header>
 
-      <div className="modules">
+      {!upcoming && <CheckinChat key={week} week={week} onPlanSaved={onPlanSaved} onStartOver={onStartOver} />}
+
+      <div className="modules section">
         <Card className="span-all" title={upcoming ? "Planned sessions" : "Planned vs done"}
               aside={refreshing ? <span className="muted small">Updating…</span> : undefined}>
           {upcoming || m ? <WeekStrip plan={p} week={week} metrics={upcoming ? null : m} changed={changed} /> : <Skeleton height={190} />}
@@ -40,7 +57,7 @@ export function WeekPage({ plan, week, changed, onCheckin }: Props) {
         {error && <Card className="span-all"><p className="tone-urgent">{error.message}</p></Card>}
 
         {upcoming ? (
-          <Card className="span-all" title="Coming up">
+          <Card className="span-all">
             <p className="muted">This week hasn't started yet. Once you've trained, upload your workouts and check in with Milo.</p>
           </Card>
         ) : m ? (

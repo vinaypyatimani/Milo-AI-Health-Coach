@@ -10,9 +10,12 @@ export type Route =
 
 export function parseRoute(hash: string): Route {
   const [page, arg] = hash.replace(/^#\/?/, "").split("/");
-  if (page === "plan" || page === "data" || page === "progress" || page === "profile") return { page };
-  const week = Number(arg);
-  return { page: "week", week: Number.isInteger(week) && week > 0 ? week : null };
+  if (page === "data" || page === "progress" || page === "profile") return { page };
+  if (page === "week") {
+    const week = Number(arg);
+    return { page: "week", week: Number.isInteger(week) && week > 0 ? week : null };
+  }
+  return { page: "plan" }; // the Plan page is the start page
 }
 
 export function routeHash(r: Route): string {

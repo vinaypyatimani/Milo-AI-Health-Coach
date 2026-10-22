@@ -1,88 +1,86 @@
 /* ---------------------------------------------------------------------------
-   Milo design tokens
-   Layout: top bar, a grid of modules on the left, Milo docked on the right.
-   Color has meaning: cobalt = done / Milo, amber = moved or worth a look,
-   red = urgent safety only. Planned work is an outline, done work is a fill.
+   Milo design tokens. Minimal: white page, one font, hairlines, one accent.
+   Accent = done / Milo, amber = moved or worth a look, red = urgent only.
 --------------------------------------------------------------------------- */
 :root {
-  --bg: #eef1f6;
+  --bg: #ffffff;
   --surface: #ffffff;
-  --surface-2: #f6f8fb;
-  --ink: #131a2a;
-  --ink-2: #384257;
-  --muted: #64708a;
-  --line: #e1e6ef;
-  --line-strong: #c8d0de;
+  --surface-2: #f6f7f9;
+  --ink: #111318;
+  --ink-2: #3a3f4b;
+  --muted: #6b7180;
+  --line: #ececf0;
+  --line-strong: #d6d8de;
 
   --accent: #2f54eb;
   --accent-strong: #2443c8;
-  --accent-soft: #e7ecfe;
+  --accent-soft: #eef2ff;
   --accent-ink: #ffffff;
-  --planned: #9aa6bd;
+  --planned: #a3a9b6;
 
-  --warn: #b5650f;
-  --warn-soft: #fdf0de;
+  --warn: #a8600f;
+  --warn-soft: #fdf3e4;
   --urgent: #c42b23;
-  --urgent-soft: #fdeceb;
-  --new: #7a3fe0;
-  --new-soft: #f1eafe;
+  --urgent-soft: #fdeeed;
+  --new: #2f54eb;
+  --new-soft: #eef2ff;
 
-  --font-display: "Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Figtree", ui-sans-serif, system-ui, sans-serif;
   --font-body: "Figtree", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
 
   --r-sm: 8px;
-  --r-md: 12px;
-  --r-lg: 16px;
-  --dock-w: 400px;
-  --top-h: 60px;
+  --r-md: 10px;
+  --r-lg: 14px;
+  --top-h: 56px;
+  --col: 760px;
 
   color-scheme: light;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #0c111c;
-    --surface: #141b2a;
-    --surface-2: #19212f;
-    --ink: #e7ebf3;
-    --ink-2: #c3cad8;
-    --muted: #8d98ae;
-    --line: #242d3f;
-    --line-strong: #344057;
-    --accent: #7390ff;
-    --accent-strong: #8ea5ff;
-    --accent-soft: #1b2650;
+    --bg: #0e1015;
+    --surface: #0e1015;
+    --surface-2: #171a21;
+    --ink: #eceef2;
+    --ink-2: #c4c8d1;
+    --muted: #8b91a0;
+    --line: #20242d;
+    --line-strong: #323744;
+    --accent: #7c97ff;
+    --accent-strong: #97acff;
+    --accent-soft: #1a2142;
     --accent-ink: #0b1130;
-    --planned: #56627c;
-    --warn: #eaa75a;
-    --warn-soft: #33261a;
+    --planned: #5a6072;
+    --warn: #e9a95e;
+    --warn-soft: #2e2418;
     --urgent: #ff7d73;
-    --urgent-soft: #3a1c1c;
-    --new: #b393ff;
-    --new-soft: #2a1f45;
+    --urgent-soft: #351c1c;
+    --new: #7c97ff;
+    --new-soft: #1a2142;
     color-scheme: dark;
   }
 }
 
 :root[data-theme="dark"] {
-  --bg: #0c111c;
-  --surface: #141b2a;
-  --surface-2: #19212f;
-  --ink: #e7ebf3;
-  --ink-2: #c3cad8;
-  --muted: #8d98ae;
-  --line: #242d3f;
-  --line-strong: #344057;
-  --accent: #7390ff;
-  --accent-strong: #8ea5ff;
-  --accent-soft: #1b2650;
+  --bg: #0e1015;
+  --surface: #0e1015;
+  --surface-2: #171a21;
+  --ink: #eceef2;
+  --ink-2: #c4c8d1;
+  --muted: #8b91a0;
+  --line: #20242d;
+  --line-strong: #323744;
+  --accent: #7c97ff;
+  --accent-strong: #97acff;
+  --accent-soft: #1a2142;
   --accent-ink: #0b1130;
-  --planned: #56627c;
-  --warn: #eaa75a;
-  --warn-soft: #33261a;
+  --planned: #5a6072;
+  --warn: #e9a95e;
+  --warn-soft: #2e2418;
   --urgent: #ff7d73;
-  --urgent-soft: #3a1c1c;
-  --new: #b393ff;
-  --new-soft: #2a1f45;
+  --urgent-soft: #351c1c;
+  --new: #7c97ff;
+  --new-soft: #1a2142;
   color-scheme: dark;
 }

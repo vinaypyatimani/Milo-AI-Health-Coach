@@ -16,13 +16,14 @@ from typing import Literal, Optional
 
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, RedirectResponse, StreamingResponse
+from fastapi.responses import FileResponse, RedirectResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from milo import config
 from milo.adapters import SUPPORTED_EXTENSIONS, AdapterError, parse_file
 from milo.coach import Coach, today
+from milo.exports import plan_to_pdf, plan_to_xlsx
 from milo.llm import LLMError
 from milo.schemas import Activity, RecoveryDay, SessionType, UserProfile
 from milo.storage import Storage
@@ -108,6 +109,38 @@ def get_plan():
     plan = store.get_plan()
     return {"plan": plan, "current_week": coach.current_week(),
             "history": store.plan_history()}
+
+
+@app.get("/api/plan/export.{fmt}")
+def export_plan(fmt: Literal["pdf", "xlsx"]):
+    """Download the plan: PDF to read or print, Excel to track offline."""
+    plan = store.get_plan()
+    if plan is None:
+        raise HTTPException(404, "No plan to download yet.")
+    profile = store.get_profile()
+    if fmt == "pdf":
+        data, media = plan_to_pdf(plan, profile), "application/pdf"
+    else:
+        data = plan_to_xlsx(plan, profile)
+        media = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    name = f"milo-plan-{plan.start_date.isoformat()}.{fmt}"
+    return Response(data, media_type=media, headers={"Content-Disposition": f'attachment; filename="{name}"'})
+
+
+@app.delete("/api/plan")
+def clear_plan():
+    """Start over: removes every plan version and all conversations.
+    Profile and tracker data are kept."""
+    coach.clear_plan()
+    return {"ok": True}
+
+
+@app.delete("/api/conversations/{mode}")
+def clear_conversation(mode: Literal["coaching", "checkin"], week: Optional[int] = None):
+    if mode == "checkin" and week is None:
+        raise HTTPException(400, "A check-in conversation needs ?week=")
+    coach.clear_conversation(mode, week)
+    return {"ok": True}
 
 
 # ---- Coaching Mode -------------------------------------------------------------------
