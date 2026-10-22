@@ -12,6 +12,16 @@ def _target(s: PlannedSession) -> str:
     return s.target_intensity.value if s.target_intensity.kind != "none" else ""
 
 
+def _exercises(s: PlannedSession) -> str:
+    return "; ".join(f"{e.name} {e.detail}".strip() for e in s.exercises)
+
+
+def _notes(s: PlannedSession) -> str:
+    """Notes plus the exercise list, for the downloads."""
+    ex = _exercises(s)
+    return " — ".join(x for x in (s.notes, ex) if x)
+
+
 def _sessions(plan: TrainingPlan):
     """Every day of every week, rest days included, in calendar order."""
     for w in plan.weeks:
@@ -55,7 +65,7 @@ def plan_to_xlsx(plan: TrainingPlan, profile: UserProfile | None = None) -> byte
             w.week_number, day, date,
             "Rest" if rest else s.title, "" if rest else s.type,
             None if rest else s.duration_min, None if rest or s.distance_km is None else s.distance_km,
-            "" if rest else _target(s), "" if rest else s.notes,
+            "" if rest else _target(s), "" if rest else _notes(s),
             "" if rest else None, None, None,
         ])
         row = ws.max_row
@@ -72,7 +82,7 @@ def plan_to_xlsx(plan: TrainingPlan, profile: UserProfile | None = None) -> byte
     ws.add_data_validation(dv)
     dv.add(f"J{header_row + 1}:J{ws.max_row}")
 
-    widths = [7, 11, 13, 24, 10, 13, 13, 16, 34, 9, 12, 24]
+    widths = [7, 11, 13, 24, 10, 13, 13, 16, 60, 9, 12, 24]
     for i, wdt in enumerate(widths, start=1):
         ws.column_dimensions[get_column_letter(i)].width = wdt
     ws.freeze_panes = ws.cell(header_row + 1, 1)
@@ -160,7 +170,7 @@ def plan_to_pdf(plan: TrainingPlan, profile: UserProfile | None = None) -> bytes
                 rows.append([P(day), P(d), P("Rest", small), "", "", "", "", ""])
             else:
                 rows.append([P(day), P(d), P(s.title), P(f"{s.duration_min:g} min"),
-                             P(f"{s.distance_km:g} km" if s.distance_km else ""), P(_target(s)), P(s.notes), "[  ]"])
+                             P(f"{s.distance_km:g} km" if s.distance_km else ""), P(_target(s)), P(_notes(s)), "[  ]"])
         t = Table(rows, colWidths=[22 * mm, 16 * mm, 45 * mm, 18 * mm, 18 * mm, 28 * mm, 100 * mm, 12 * mm],
                   repeatRows=1)
         t.setStyle(TableStyle([

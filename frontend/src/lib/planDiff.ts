@@ -4,7 +4,8 @@ import type { PlannedSession, TrainingPlan } from "./types";
 export const dayKey = (week: number, day: string) => `${week}-${day}`;
 
 const fingerprint = (s?: PlannedSession) =>
-  s ? [s.type, s.title, s.duration_min, s.distance_km, s.target_intensity.kind, s.target_intensity.value].join("|") : "";
+  s ? [s.type, s.title, s.duration_min, s.distance_km, s.target_intensity.kind, s.target_intensity.value,
+       (s.exercises ?? []).map((e) => `${e.name}:${e.detail}`).join(",")].join("|") : "";
 
 /** Which days changed between two plan versions, so the UI can highlight them. */
 export function diffPlans(before: TrainingPlan | null | undefined, after: TrainingPlan | null | undefined): Set<string> {

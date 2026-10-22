@@ -26,6 +26,13 @@ class TargetIntensity(BaseModel):
     value: str = ""
 
 
+class Exercise(BaseModel):
+    """One step of a session: a move with sets/reps, or a run segment."""
+    name: str
+    detail: str = ""          # "3 x 10", "10 min easy", "30 s each side"
+    video_query: str = ""     # what to search for a how-to video ("" = use the name)
+
+
 class PlannedSession(BaseModel):
     day: str
     type: SessionType
@@ -34,6 +41,7 @@ class PlannedSession(BaseModel):
     distance_km: Optional[float] = None
     target_intensity: TargetIntensity = Field(default_factory=TargetIntensity)
     notes: str = ""
+    exercises: list[Exercise] = Field(default_factory=list)
 
     @field_validator("day")
     @classmethod

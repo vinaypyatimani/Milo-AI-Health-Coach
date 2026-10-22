@@ -37,12 +37,12 @@ milo-coach/
 │   │   └── prompts/            coach_system.md, judge.md
 │   ├── evaluation/             scenarios, LLM-as-a-judge, hallucinated-number check
 │   ├── scripts/                sample data generator, demo seeding
-│   └── tests/                  43 tests, run without an API key
+│   └── tests/                  50 tests, run without an API key
 ├── frontend/
 │   └── src/
 │       ├── App.tsx             shell: top bar, pages, start over
 │       ├── chat/               central chat: start button, streaming, usage meter, start over
-│       ├── modules/            week strip, stats, plan days, nutrition, uploads, chart
+│       ├── modules/            plan calendar, exercise videos, week strip, stats, nutrition, uploads, chart
 │       ├── pages/              Plan (start page), Week, Data, Progress, Profile
 │       ├── lib/                API client, streaming (SSE), data cache, routing, plan diff
 │       └── styles/             design tokens, shell, modules, chat
@@ -162,6 +162,7 @@ Interactive docs at `/docs`.
 | GET | `/api/plan/export.pdf`, `/api/plan/export.xlsx` | Download the plan (PDF to print, Excel to track offline) |
 | DELETE | `/api/plan` | Start over and clear the plan (plan versions + conversations; profile and activities stay) |
 | DELETE | `/api/conversations/{mode}` | Start over and keep the plan (`?week=N` for a check-in) |
+| GET | `/api/videos?q=` | How-to videos for an exercise (YouTube, cached; a search link without a key) |
 | DELETE | `/api/data` | Delete everything (GDPR) |
 
 ---
@@ -189,6 +190,15 @@ Set `MILO_MODEL` and the matching API key as environment variables on the platfo
 
 ### Option C: static demo only
 `npm run build:demo` produces one HTML file that runs without a backend. Host it anywhere (GitHub Pages, Netlify drop) as a portfolio preview.
+
+### How-to videos
+
+Every session in the plan lists its exercises, and the Plan page shows a
+how-to video for each one. Set `YOUTUBE_API_KEY` (free, from the Google Cloud
+console with "YouTube Data API v3" enabled) to play the top video in the app;
+without it, each exercise links to a YouTube search. Results are cached in
+SQLite because the free key allows about 100 searches a day. Videos load
+from youtube-nocookie.com only when you press play.
 
 ### Notes for production
 - **Model hosting:** free hosting tiers can't run Ollama models; use an API model (GitHub Models, Gemini, Claude).

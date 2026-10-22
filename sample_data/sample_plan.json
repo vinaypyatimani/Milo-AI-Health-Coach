@@ -16,7 +16,8 @@
             "kind": "none",
             "value": ""
           },
-          "notes": ""
+          "notes": "",
+          "exercises": []
         },
         {
           "day": "Tuesday",
@@ -28,7 +29,24 @@
             "kind": "hr_zone",
             "value": "Zone 2"
           },
-          "notes": "Conversational pace"
+          "notes": "Conversational pace",
+          "exercises": [
+            {
+              "name": "Brisk walk warm-up",
+              "detail": "5 min",
+              "video_query": "dynamic warm up before running"
+            },
+            {
+              "name": "Easy run",
+              "detail": "20 min, Zone 2",
+              "video_query": "how to run in zone 2"
+            },
+            {
+              "name": "Walk cool-down",
+              "detail": "5 min",
+              "video_query": ""
+            }
+          ]
         },
         {
           "day": "Wednesday",
@@ -40,7 +58,8 @@
             "kind": "none",
             "value": ""
           },
-          "notes": ""
+          "notes": "",
+          "exercises": []
         },
         {
           "day": "Thursday",
@@ -52,7 +71,34 @@
             "kind": "rpe",
             "value": "RPE 6"
           },
-          "notes": "Squats, lunges, push-ups, planks"
+          "notes": "Squats, lunges, push-ups, planks",
+          "exercises": [
+            {
+              "name": "Bodyweight squat",
+              "detail": "3 x 12",
+              "video_query": "bodyweight squat proper form"
+            },
+            {
+              "name": "Reverse lunge",
+              "detail": "3 x 8 each leg",
+              "video_query": "reverse lunge proper form"
+            },
+            {
+              "name": "Push-up",
+              "detail": "3 x 8 (knees OK)",
+              "video_query": "push up proper form beginner"
+            },
+            {
+              "name": "Plank",
+              "detail": "3 x 30 s",
+              "video_query": "plank proper form"
+            },
+            {
+              "name": "Glute bridge",
+              "detail": "3 x 12",
+              "video_query": "glute bridge proper form"
+            }
+          ]
         },
         {
           "day": "Friday",
@@ -64,7 +110,8 @@
             "kind": "none",
             "value": ""
           },
-          "notes": ""
+          "notes": "",
+          "exercises": []
         },
         {
           "day": "Saturday",
@@ -76,7 +123,24 @@
             "kind": "hr_zone",
             "value": "Zone 2"
           },
-          "notes": "Slow and steady"
+          "notes": "Slow and steady",
+          "exercises": [
+            {
+              "name": "Brisk walk warm-up",
+              "detail": "5 min",
+              "video_query": "dynamic warm up before running"
+            },
+            {
+              "name": "Long easy run",
+              "detail": "35 min, Zone 2",
+              "video_query": "long run tips for beginners"
+            },
+            {
+              "name": "Walk cool-down",
+              "detail": "5 min",
+              "video_query": ""
+            }
+          ]
         },
         {
           "day": "Sunday",
@@ -88,7 +152,29 @@
             "kind": "none",
             "value": ""
           },
-          "notes": "Stretching or yoga"
+          "notes": "Stretching or yoga",
+          "exercises": [
+            {
+              "name": "Hip flexor stretch",
+              "detail": "2 x 30 s each side",
+              "video_query": "hip flexor stretch for runners"
+            },
+            {
+              "name": "Hamstring stretch",
+              "detail": "2 x 30 s each side",
+              "video_query": "hamstring stretch for runners"
+            },
+            {
+              "name": "Cat-cow",
+              "detail": "10 slow reps",
+              "video_query": "cat cow stretch how to"
+            },
+            {
+              "name": "Calf stretch",
+              "detail": "2 x 30 s each side",
+              "video_query": "calf stretch for runners"
+            }
+          ]
         }
       ]
     },
@@ -106,7 +192,8 @@
             "kind": "none",
             "value": ""
           },
-          "notes": ""
+          "notes": "",
+          "exercises": []
         },
         {
           "day": "Tuesday",
@@ -118,7 +205,24 @@
             "kind": "hr_zone",
             "value": "Zone 2"
           },
-          "notes": "Conversational pace"
+          "notes": "Conversational pace",
+          "exercises": [
+            {
+              "name": "Brisk walk warm-up",
+              "detail": "5 min",
+              "video_query": "dynamic warm up before running"
+            },
+            {
+              "name": "Easy run",
+              "detail": "22 min, Zone 2",
+              "video_query": "how to run in zone 2"
+            },
+            {
+              "name": "Walk cool-down",
+              "detail": "5 min",
+              "video_query": ""
+            }
+          ]
         },
         {
           "day": "Wednesday",
@@ -130,7 +234,8 @@
             "kind": "none",
             "value": ""
           },
-          "notes": ""
+          "notes": "",
+          "exercises": []
         },
         {
           "day": "Thursday",
@@ -142,7 +247,34 @@
             "kind": "rpe",
             "value": "RPE 6"
           },
-          "notes": "Squats, lunges, push-ups, planks"
+          "notes": "Squats, lunges, push-ups, planks",
+          "exercises": [
+            {
+              "name": "Bodyweight squat",
+              "detail": "3 x 12",
+              "video_query": "bodyweight squat proper form"
+            },
+            {
+              "name": "Reverse lunge",
+              "detail": "3 x 8 each leg",
+              "video_query": "reverse lunge proper form"
+            },
+            {
+              "name": "Push-up",
+              "detail": "3 x 8 (knees OK)",
+              "video_query": "push up proper form beginner"
+            },
+            {
+              "name": "Plank",
+              "detail": "3 x 30 s",
+              "video_query": "plank proper form"
+            },
+            {
+              "name": "Glute bridge",
+              "detail": "3 x 12",
+              "video_query": "glute bridge proper form"
+            }
+          ]
         },
         {
           "day": "Friday",
@@ -154,7 +286,8 @@
             "kind": "none",
             "value": ""
           },
-          "notes": ""
+          "notes": "",
+          "exercises": []
         },
         {
           "day": "Saturday",
@@ -166,7 +299,24 @@
             "kind": "hr_zone",
             "value": "Zone 2"
           },
-          "notes": "Slow and steady"
+          "notes": "Slow and steady",
+          "exercises": [
+            {
+              "name": "Brisk walk warm-up",
+              "detail": "5 min",
+              "video_query": "dynamic warm up before running"
+            },
+            {
+              "name": "Long easy run",
+              "detail": "40 min, Zone 2",
+              "video_query": "long run tips for beginners"
+            },
+            {
+              "name": "Walk cool-down",
+              "detail": "5 min",
+              "video_query": ""
+            }
+          ]
         },
         {
           "day": "Sunday",
@@ -178,7 +328,29 @@
             "kind": "none",
             "value": ""
           },
-          "notes": "Stretching or yoga"
+          "notes": "Stretching or yoga",
+          "exercises": [
+            {
+              "name": "Hip flexor stretch",
+              "detail": "2 x 30 s each side",
+              "video_query": "hip flexor stretch for runners"
+            },
+            {
+              "name": "Hamstring stretch",
+              "detail": "2 x 30 s each side",
+              "video_query": "hamstring stretch for runners"
+            },
+            {
+              "name": "Cat-cow",
+              "detail": "10 slow reps",
+              "video_query": "cat cow stretch how to"
+            },
+            {
+              "name": "Calf stretch",
+              "detail": "2 x 30 s each side",
+              "video_query": "calf stretch for runners"
+            }
+          ]
         }
       ]
     },
@@ -196,7 +368,8 @@
             "kind": "none",
             "value": ""
           },
-          "notes": ""
+          "notes": "",
+          "exercises": []
         },
         {
           "day": "Tuesday",
@@ -208,7 +381,24 @@
             "kind": "hr_zone",
             "value": "Zone 2"
           },
-          "notes": "Conversational pace"
+          "notes": "Conversational pace",
+          "exercises": [
+            {
+              "name": "Brisk walk warm-up",
+              "detail": "5 min",
+              "video_query": "dynamic warm up before running"
+            },
+            {
+              "name": "Easy run",
+              "detail": "25 min, Zone 2",
+              "video_query": "how to run in zone 2"
+            },
+            {
+              "name": "Walk cool-down",
+              "detail": "5 min",
+              "video_query": ""
+            }
+          ]
         },
         {
           "day": "Wednesday",
@@ -220,7 +410,8 @@
             "kind": "none",
             "value": ""
           },
-          "notes": ""
+          "notes": "",
+          "exercises": []
         },
         {
           "day": "Thursday",
@@ -232,7 +423,34 @@
             "kind": "rpe",
             "value": "RPE 6"
           },
-          "notes": "Squats, lunges, push-ups, planks"
+          "notes": "Squats, lunges, push-ups, planks",
+          "exercises": [
+            {
+              "name": "Bodyweight squat",
+              "detail": "3 x 12",
+              "video_query": "bodyweight squat proper form"
+            },
+            {
+              "name": "Reverse lunge",
+              "detail": "3 x 8 each leg",
+              "video_query": "reverse lunge proper form"
+            },
+            {
+              "name": "Push-up",
+              "detail": "3 x 8 (knees OK)",
+              "video_query": "push up proper form beginner"
+            },
+            {
+              "name": "Plank",
+              "detail": "3 x 30 s",
+              "video_query": "plank proper form"
+            },
+            {
+              "name": "Glute bridge",
+              "detail": "3 x 12",
+              "video_query": "glute bridge proper form"
+            }
+          ]
         },
         {
           "day": "Friday",
@@ -244,7 +462,8 @@
             "kind": "none",
             "value": ""
           },
-          "notes": ""
+          "notes": "",
+          "exercises": []
         },
         {
           "day": "Saturday",
@@ -256,7 +475,24 @@
             "kind": "hr_zone",
             "value": "Zone 2"
           },
-          "notes": "Slow and steady"
+          "notes": "Slow and steady",
+          "exercises": [
+            {
+              "name": "Brisk walk warm-up",
+              "detail": "5 min",
+              "video_query": "dynamic warm up before running"
+            },
+            {
+              "name": "Long easy run",
+              "detail": "45 min, Zone 2",
+              "video_query": "long run tips for beginners"
+            },
+            {
+              "name": "Walk cool-down",
+              "detail": "5 min",
+              "video_query": ""
+            }
+          ]
         },
         {
           "day": "Sunday",
@@ -268,7 +504,29 @@
             "kind": "none",
             "value": ""
           },
-          "notes": "Stretching or yoga"
+          "notes": "Stretching or yoga",
+          "exercises": [
+            {
+              "name": "Hip flexor stretch",
+              "detail": "2 x 30 s each side",
+              "video_query": "hip flexor stretch for runners"
+            },
+            {
+              "name": "Hamstring stretch",
+              "detail": "2 x 30 s each side",
+              "video_query": "hamstring stretch for runners"
+            },
+            {
+              "name": "Cat-cow",
+              "detail": "10 slow reps",
+              "video_query": "cat cow stretch how to"
+            },
+            {
+              "name": "Calf stretch",
+              "detail": "2 x 30 s each side",
+              "video_query": "calf stretch for runners"
+            }
+          ]
         }
       ]
     },
@@ -286,7 +544,8 @@
             "kind": "none",
             "value": ""
           },
-          "notes": ""
+          "notes": "",
+          "exercises": []
         },
         {
           "day": "Tuesday",
@@ -298,7 +557,24 @@
             "kind": "hr_zone",
             "value": "Zone 2"
           },
-          "notes": "Conversational pace"
+          "notes": "Conversational pace",
+          "exercises": [
+            {
+              "name": "Brisk walk warm-up",
+              "detail": "5 min",
+              "video_query": "dynamic warm up before running"
+            },
+            {
+              "name": "Easy run",
+              "detail": "18 min, Zone 2",
+              "video_query": "how to run in zone 2"
+            },
+            {
+              "name": "Walk cool-down",
+              "detail": "5 min",
+              "video_query": ""
+            }
+          ]
         },
         {
           "day": "Wednesday",
@@ -310,7 +586,8 @@
             "kind": "none",
             "value": ""
           },
-          "notes": ""
+          "notes": "",
+          "exercises": []
         },
         {
           "day": "Thursday",
@@ -322,7 +599,34 @@
             "kind": "rpe",
             "value": "RPE 6"
           },
-          "notes": "Squats, lunges, push-ups, planks"
+          "notes": "Squats, lunges, push-ups, planks",
+          "exercises": [
+            {
+              "name": "Bodyweight squat",
+              "detail": "3 x 12",
+              "video_query": "bodyweight squat proper form"
+            },
+            {
+              "name": "Reverse lunge",
+              "detail": "3 x 8 each leg",
+              "video_query": "reverse lunge proper form"
+            },
+            {
+              "name": "Push-up",
+              "detail": "3 x 8 (knees OK)",
+              "video_query": "push up proper form beginner"
+            },
+            {
+              "name": "Plank",
+              "detail": "3 x 30 s",
+              "video_query": "plank proper form"
+            },
+            {
+              "name": "Glute bridge",
+              "detail": "3 x 12",
+              "video_query": "glute bridge proper form"
+            }
+          ]
         },
         {
           "day": "Friday",
@@ -334,7 +638,8 @@
             "kind": "none",
             "value": ""
           },
-          "notes": ""
+          "notes": "",
+          "exercises": []
         },
         {
           "day": "Saturday",
@@ -346,7 +651,24 @@
             "kind": "hr_zone",
             "value": "Zone 2"
           },
-          "notes": "Slow and steady"
+          "notes": "Slow and steady",
+          "exercises": [
+            {
+              "name": "Brisk walk warm-up",
+              "detail": "5 min",
+              "video_query": "dynamic warm up before running"
+            },
+            {
+              "name": "Long easy run",
+              "detail": "30 min, Zone 2",
+              "video_query": "long run tips for beginners"
+            },
+            {
+              "name": "Walk cool-down",
+              "detail": "5 min",
+              "video_query": ""
+            }
+          ]
         },
         {
           "day": "Sunday",
@@ -358,7 +680,29 @@
             "kind": "none",
             "value": ""
           },
-          "notes": "Stretching or yoga"
+          "notes": "Stretching or yoga",
+          "exercises": [
+            {
+              "name": "Hip flexor stretch",
+              "detail": "2 x 30 s each side",
+              "video_query": "hip flexor stretch for runners"
+            },
+            {
+              "name": "Hamstring stretch",
+              "detail": "2 x 30 s each side",
+              "video_query": "hamstring stretch for runners"
+            },
+            {
+              "name": "Cat-cow",
+              "detail": "10 slow reps",
+              "video_query": "cat cow stretch how to"
+            },
+            {
+              "name": "Calf stretch",
+              "detail": "2 x 30 s each side",
+              "video_query": "calf stretch for runners"
+            }
+          ]
         }
       ]
     }

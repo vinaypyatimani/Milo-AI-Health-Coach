@@ -161,3 +161,90 @@ button.plan-week-cell:hover { background: var(--surface-2); }
 
 .history summary { cursor: pointer; color: var(--muted); font-size: 0.9rem; }
 .history .rows { margin-top: 12px; }
+
+/* ---- plan page with a plan: chat on the left, plan opens on the right ------- */
+.page-wide { max-width: 1320px; }
+.plan-layout { display: grid; grid-template-columns: minmax(340px, 420px) minmax(0, 1fr); gap: 40px; align-items: start; }
+.plan-chat { position: sticky; top: calc(var(--top-h) + 24px); }
+.plan-chat .chat { height: calc(100dvh - var(--top-h) - 48px); max-height: none; min-height: 420px; }
+.plan-chat .chat-intro { height: auto; min-height: 0; }
+.plan-main { min-width: 0; animation: open-side 380ms cubic-bezier(.2, .8, .2, 1); }
+@keyframes open-side { from { opacity: 0; transform: translateX(28px); } }
+.plan-goal { font-size: 1.45rem; }
+@media (max-width: 1060px) {
+  .plan-layout { grid-template-columns: minmax(0, 1fr); gap: 32px; max-width: calc(var(--col) + 64px); }
+  .plan-chat { position: static; }
+  .plan-chat .chat { height: auto; max-height: min(640px, 74dvh); min-height: 380px; }
+  .plan-main { animation-name: open-down; }
+  @keyframes open-down { from { opacity: 0; transform: translateY(16px); } }
+}
+
+/* ---- calendar ------------------------------------------------------------------ */
+.cal { display: grid; grid-template-columns: 34px repeat(7, minmax(0, 1fr)); gap: 6px; }
+.cal-dow { font-size: 0.75rem; color: var(--muted); text-align: left; padding: 0 4px; }
+.cal-week { font-size: 0.75rem; color: var(--muted); font-weight: 600; padding-top: 10px; }
+.cal-day {
+  position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 3px;
+  min-height: 84px; padding: 8px 8px 7px; text-align: left; cursor: pointer; min-width: 0;
+  border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface);
+  transition: border-color 120ms, background 120ms;
+}
+.cal-day:hover { border-color: var(--line-strong); }
+.cal-day::before { content: ""; position: absolute; left: 8px; right: 8px; bottom: 0; height: 2px; border-radius: 2px; background: transparent; }
+.cal-day.t-run::before { background: var(--accent); }
+.cal-day.t-strength::before { background: var(--ink-2); }
+.cal-day.t-mobility::before, .cal-day.t-walk::before { background: var(--planned); }
+.cal-day.t-cycling::before, .cal-day.t-swim::before, .cal-day.t-other::before { background: var(--warn); }
+.cal-day.is-rest { background: var(--surface-2); border-color: transparent; }
+.cal-day.is-past { opacity: 0.55; }
+.cal-day.is-today { border-color: var(--ink); }
+.cal-day.is-selected { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); opacity: 1; }
+.cal-day.is-new { background: var(--new-soft); }
+.cal-date { font-size: 0.75rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.is-today .cal-date { color: var(--ink); font-weight: 700; }
+.cal-title { font-size: 0.84rem; font-weight: 600; line-height: 1.2; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.cal-min { margin-top: auto; font-size: 0.75rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.cal-rest { font-size: 0.78rem; color: var(--planned); }
+
+.cal-detail {
+  grid-column: 2 / -1; margin: 2px 0 10px; padding: 16px 18px;
+  border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface-2);
+  animation: open-detail 200ms ease-out;
+}
+@keyframes open-detail { from { opacity: 0; transform: translateY(-4px); } }
+.cal-detail h3 { margin: 4px 0 2px; font-size: 1.05rem; }
+.exercises { margin: 12px 0 0; padding: 0; list-style: none; counter-reset: ex; }
+.exercises li { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-top: 1px solid var(--line); counter-increment: ex; }
+.exercises li > span:first-child::before { content: counter(ex) ". "; color: var(--muted); font-variant-numeric: tabular-nums; }
+.exercises li .muted { text-align: right; font-size: 0.9rem; }
+
+/* ---- how-to videos ---------------------------------------------------------- */
+.videos { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 18px; }
+.video { margin: 0; min-width: 0; }
+.video-frame { position: relative; aspect-ratio: 16 / 9; border-radius: var(--r-md); overflow: hidden; background: var(--surface-2); }
+.video-frame .skeleton { position: absolute; inset: 0; border-radius: 0; }
+.video-frame iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.video-thumb, .video-link {
+  position: absolute; inset: 0; display: grid; place-items: center; border: 0; padding: 0; cursor: pointer;
+  background: var(--surface-2); color: var(--ink-2); text-decoration: none; font-size: 0.86rem; font-weight: 500;
+}
+.video-link { grid-template-rows: auto auto; align-content: center; gap: 8px; border: 1px dashed var(--line-strong); border-radius: var(--r-md); }
+.video-thumb img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.play { position: relative; width: 44px; height: 44px; border-radius: 50%; background: rgb(0 0 0 / 0.65); }
+.play::after { content: ""; position: absolute; left: 17px; top: 13px; border-left: 14px solid #fff; border-top: 9px solid transparent; border-bottom: 9px solid transparent; }
+.video-link .play { background: var(--ink); }
+.video figcaption { display: flex; flex-direction: column; gap: 2px; margin-top: 8px; min-width: 0; }
+.video figcaption .muted { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.video figcaption a { color: var(--accent); text-decoration: none; }
+
+@media (max-width: 640px) {
+  .cal { grid-template-columns: 22px repeat(7, minmax(0, 1fr)); gap: 3px; }
+  .cal-day { min-height: 58px; padding: 6px 4px 6px; border-radius: 8px; }
+  .cal-title, .cal-rest { display: none; }
+  .cal-detail { grid-column: 1 / -1; padding: 14px; }
+  .cal-dow { padding: 0 2px; }
+  .videos { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .video figcaption .muted { display: none; }
+  .play { width: 34px; height: 34px; }
+  .play::after { left: 13px; top: 10px; border-left-width: 11px; border-top-width: 7px; border-bottom-width: 7px; }
+}

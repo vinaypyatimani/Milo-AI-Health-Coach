@@ -6,7 +6,7 @@
  */
 import type {
   ActivityItem, ChatMessage, ChatTarget, ManualActivity, NutritionPlan, PlanResponse, Profile, ProgressWeek,
-  StreamDone, StreamHandlers, TrainingPlan, UploadReport, Usage, WeekMetrics,
+  StreamDone, StreamHandlers, TrainingPlan, UploadReport, Usage, VideoResult, WeekMetrics,
 } from "./types";
 import data from "./demoData";
 
@@ -199,6 +199,11 @@ export const mockApi = {
     return { ok: true };
   },
   exportUrl: (fmt: "pdf" | "xlsx") => `#download-${fmt}`,
+  // The demo has no server (and no YouTube key), so it links to a YouTube search.
+  videos: async (q: string): Promise<VideoResult> => ({
+    query: q, items: [], source: "link",
+    search_url: `https://www.youtube.com/results?search_query=${encodeURIComponent(q).replace(/%20/g, "+")}`,
+  }),
   deleteAll: async () => {
     await wait(300);
     plan = null; activities = []; profile = null; history = [];

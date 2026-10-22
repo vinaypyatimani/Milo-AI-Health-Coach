@@ -48,3 +48,7 @@ WARMUP = os.getenv("MILO_WARMUP", "1").lower() in ("1", "true", "yes")
 # Upload limits
 MAX_UPLOAD_MB = int(os.getenv("MILO_MAX_UPLOAD_MB", "200"))
 APPLE_HEALTH_LOOKBACK_DAYS = int(os.getenv("MILO_APPLE_LOOKBACK_DAYS", "120"))
+
+# How-to videos for exercises. With a YouTube Data API key the app shows the
+# top video inline; without one it links to a YouTube search instead.
+YOUTUBE_API_KEY = os.getenv("YOUTUBE_API_KEY", "").strip()

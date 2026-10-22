@@ -1,14 +1,14 @@
 import { useRef, useState, type DragEvent, type FormEvent } from "react";
 import { api } from "../lib/api";
-import { invalidate } from "../lib/query";
+import { invalidate, useQuery } from "../lib/query";
 import type { ActivityItem, ManualActivity, SessionType, UploadReport } from "../lib/types";
-import { fmtDate, fmtMin, fmtNum, typeLabel } from "../lib/format";
+import { addDays, fmtDate, fmtMin, fmtNum, localToday, typeLabel } from "../lib/format";
 import { Banner, Card } from "../components/ui";
 import { IconUpload } from "../components/icons";
 
 const FORMATS = [".fit", ".gpx", ".tcx", "Apple Health .zip", ".csv"];
 const TYPES: SessionType[] = ["run", "walk", "cycling", "swim", "strength", "mobility", "other"];
-const today = () => new Date().toISOString().slice(0, 10);
+const today = localToday; // the user's date, not UTC (matters just after midnight)
 
 /** After new data arrives, everything that depends on it refreshes itself. */
 const dataChanged = () => invalidate("activities", "metrics:", "progress");
@@ -70,6 +70,10 @@ export function ManualEntryCard({ notify }: { notify: (m: string) => void }) {
   const [error, setError] = useState<string | null>(null);
   const set = <K extends keyof ManualActivity>(k: K, v: ManualActivity[K]) => setForm((f) => ({ ...f, [k]: v }));
   const num = (v: string) => (v === "" ? null : Number(v));
+  const { data: plan } = useQuery("plan", api.getPlan);
+  const p = plan?.plan;
+  const planEnd = p ? addDays(p.start_date, p.weeks.length * 7 - 1) : null;
+  const outside = p && planEnd && (form.date < p.start_date || form.date > planEnd);
 
   const submit = async (e: FormEvent) => {
     e.preventDefault(); setError(null);
@@ -90,6 +94,7 @@ export function ManualEntryCard({ notify }: { notify: (m: string) => void }) {
         <div className="field"><label htmlFor="m-dist">Distance (km)</label><input id="m-dist" className="input" type="number" step="0.01" min={0} value={form.distance_km ?? ""} onChange={(e) => set("distance_km", num(e.target.value))} /></div>
         <div className="field"><label htmlFor="m-hr">Average heart rate</label><input id="m-hr" className="input" type="number" min={30} max={240} value={form.avg_hr ?? ""} onChange={(e) => set("avg_hr", num(e.target.value))} /></div>
         <div className="field full"><label htmlFor="m-notes">Notes</label><input id="m-notes" className="input" value={form.notes} onChange={(e) => set("notes", e.target.value)} placeholder="How did it feel?" /></div>
+        {outside && <p className="full small tone-warn">This date is outside your plan ({fmtDate(p!.start_date)} – {fmtDate(planEnd!)}), so it will be saved but won't count on the Progress page.</p>}
         <div className="full"><button className="btn btn-primary" type="submit">Add workout</button></div>
         {error && <div className="full"><Banner tone="error">{error}</Banner></div>}
       </form>

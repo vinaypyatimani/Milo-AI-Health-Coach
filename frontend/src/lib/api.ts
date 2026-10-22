@@ -1,6 +1,6 @@
 import type {
   ActivityItem, ChatMessage, ChatTarget, ManualActivity, PlanResponse, Profile, ProgressWeek,
-  StreamDone, StreamHandlers, StreamMeta, UploadReport, WeekMetrics,
+  StreamDone, StreamHandlers, StreamMeta, UploadReport, VideoResult, WeekMetrics,
 } from "./types";
 import { postEvents } from "./sse";
 import { mockApi } from "./mock";
@@ -69,6 +69,8 @@ export const realApi = {
   /** Start over: clear one conversation, keep the plan. */
   clearConversation: (t: ChatTarget) =>
     request<{ ok: boolean }>(t.mode === "coaching" ? "/api/conversations/coaching" : `/api/conversations/checkin?week=${t.week}`, { method: "DELETE" }),
+  /** How-to videos for one exercise (YouTube, cached on the server). */
+  videos: (q: string) => request<VideoResult>(`/api/videos?q=${encodeURIComponent(q)}`),
   /** Link for downloading the plan as a PDF or an Excel file. */
   exportUrl: (fmt: "pdf" | "xlsx") => `${BASE}/api/plan/export.${fmt}`,
 };

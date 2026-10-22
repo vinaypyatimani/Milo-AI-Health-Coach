@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
+import threading
 from contextlib import contextmanager
 from datetime import date, datetime
 from pathlib import Path
@@ -36,6 +37,11 @@ CREATE TABLE IF NOT EXISTS recovery (
     day TEXT PRIMARY KEY,
     data TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS video_cache (
+    query TEXT PRIMARY KEY,
+    items TEXT NOT NULL,
+    fetched_at TEXT NOT NULL
+);
 CREATE TABLE IF NOT EXISTS conversations (
     key TEXT PRIMARY KEY,          -- "coaching" or "checkin:<week>"
     messages TEXT NOT NULL,
@@ -51,16 +57,28 @@ class Storage:
             self.path.parent.mkdir(parents=True, exist_ok=True)
         self._conn = sqlite3.connect(str(self.path), check_same_thread=False)
         self._conn.row_factory = sqlite3.Row
+        # One connection is shared by the server's worker threads. SQLite
+        # connections aren't safe for parallel use, so every access takes this
+        # lock (several video lookups at once used to fail with "API misuse").
+        self._lock = threading.RLock()
         self._conn.executescript(_SCHEMA)
 
     @contextmanager
     def _tx(self) -> Iterator[sqlite3.Connection]:
-        with self._conn:
+        with self._lock, self._conn:
             yield self._conn
+
+    def _one(self, sql: str, args: tuple | list = ()) -> sqlite3.Row | None:
+        with self._lock:
+            return self._conn.execute(sql, args).fetchone()
+
+    def _all(self, sql: str, args: tuple | list = ()) -> list[sqlite3.Row]:
+        with self._lock:
+            return self._conn.execute(sql, args).fetchall()
 
     # ---- profile ---------------------------------------------------------
     def get_profile(self) -> UserProfile | None:
-        row = self._conn.execute("SELECT data FROM profile WHERE id = 1").fetchone()
+        row = self._one("SELECT data FROM profile WHERE id = 1")
         return UserProfile.model_validate_json(row["data"]) if row else None
 
     def save_profile(self, profile: UserProfile) -> None:
@@ -78,13 +96,11 @@ class Storage:
             return int(cur.lastrowid)
 
     def get_plan(self) -> TrainingPlan | None:
-        row = self._conn.execute("SELECT data FROM plans ORDER BY id DESC LIMIT 1").fetchone()
+        row = self._one("SELECT data FROM plans ORDER BY id DESC LIMIT 1")
         return TrainingPlan.model_validate_json(row["data"]) if row else None
 
     def plan_history(self) -> list[dict]:
-        rows = self._conn.execute(
-            "SELECT id, created_at, reason FROM plans ORDER BY id DESC").fetchall()
-        return [dict(r) for r in rows]
+        return [dict(r) for r in self._all("SELECT id, created_at, reason FROM plans ORDER BY id DESC")]
 
     # ---- activities --------------------------------------------------------
     def add_activities(self, activities: list[Activity]) -> int:
@@ -107,8 +123,7 @@ class Storage:
             q += " WHERE substr(start_time, 1, 10) BETWEEN ? AND ?"
             args = [start.isoformat(), end.isoformat()]
         q += " ORDER BY start_time"
-        return [(r["id"], Activity.model_validate_json(r["data"]))
-                for r in self._conn.execute(q, args).fetchall()]
+        return [(r["id"], Activity.model_validate_json(r["data"])) for r in self._all(q, args)]
 
     def delete_activity(self, activity_id: int) -> bool:
         with self._tx() as c:
@@ -134,15 +149,13 @@ class Storage:
         return len(days)
 
     def get_recovery(self, start: date, end: date) -> list[RecoveryDay]:
-        rows = self._conn.execute(
-            "SELECT data FROM recovery WHERE day BETWEEN ? AND ? ORDER BY day",
-            (start.isoformat(), end.isoformat())).fetchall()
+        rows = self._all("SELECT data FROM recovery WHERE day BETWEEN ? AND ? ORDER BY day",
+                         (start.isoformat(), end.isoformat()))
         return [RecoveryDay.model_validate_json(r["data"]) for r in rows]
 
     # ---- conversations -------------------------------------------------------
     def get_conversation(self, key: str) -> list[dict]:
-        row = self._conn.execute("SELECT messages FROM conversations WHERE key = ?",
-                                 (key,)).fetchone()
+        row = self._one("SELECT messages FROM conversations WHERE key = ?", (key,))
         return json.loads(row["messages"]) if row else []
 
     def save_conversation(self, key: str, messages: list[dict]) -> None:
@@ -164,8 +177,18 @@ class Storage:
         with self._tx() as c:
             c.execute("DELETE FROM conversations")
 
+    # ---- how-to video search results (saves the YouTube quota) ---------------
+    def get_video_cache(self, query: str) -> list[dict] | None:
+        row = self._one("SELECT items FROM video_cache WHERE query = ?", (query,))
+        return json.loads(row["items"]) if row else None
+
+    def save_video_cache(self, query: str, items: list[dict]) -> None:
+        with self._tx() as c:
+            c.execute("INSERT OR REPLACE INTO video_cache (query, items, fetched_at) VALUES (?, ?, ?)",
+                      (query, json.dumps(items), datetime.now().isoformat(timespec="seconds")))
+
     # ---- GDPR: delete everything ---------------------------------------------
     def delete_all(self) -> None:
         with self._tx() as c:
-            for table in ("profile", "plans", "activities", "recovery", "conversations"):
+            for table in ("profile", "plans", "activities", "recovery", "conversations", "video_cache"):
                 c.execute(f"DELETE FROM {table}")

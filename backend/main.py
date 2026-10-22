@@ -14,7 +14,7 @@ from datetime import date, datetime
 from pathlib import Path
 from typing import Literal, Optional
 
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi import FastAPI, File, HTTPException, Query, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, RedirectResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
@@ -27,6 +27,7 @@ from milo.exports import plan_to_pdf, plan_to_xlsx
 from milo.llm import LLMError
 from milo.schemas import Activity, RecoveryDay, SessionType, UserProfile
 from milo.storage import Storage
+from milo.videos import find_videos
 
 app = FastAPI(title="Milo API", version="1.0.0",
               description="AI fitness coach: plan in Coaching Mode, review in Check-in Mode.")
@@ -289,6 +290,12 @@ def add_recovery(body: RecoveryIn):
 @app.get("/api/progress")
 def progress():
     return _llm_guard(coach.progress)
+
+
+@app.get("/api/videos")
+def videos(q: str = Query(..., min_length=2, max_length=120)):
+    """How-to videos for one exercise (cached). Falls back to a YouTube search link."""
+    return find_videos(store, q)
 
 
 @app.delete("/api/data")

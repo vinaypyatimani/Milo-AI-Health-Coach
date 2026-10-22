@@ -11,7 +11,14 @@ export interface PlannedSession {
   distance_km: number | null;
   target_intensity: { kind: "hr_zone" | "pace" | "rpe" | "none"; value: string };
   notes: string;
+  exercises?: Exercise[];
 }
+
+/** One step of a session: a move with sets/reps, or a run segment. */
+export interface Exercise { name: string; detail: string; video_query: string }
+
+export interface Video { id: string; title: string; channel: string; thumbnail: string }
+export interface VideoResult { query: string; search_url: string; items: Video[]; source: "youtube" | "link" }
 
 export interface PlanWeek { week_number: number; focus: string; sessions: PlannedSession[] }
 export interface Meal { meal: string; timing: string; suggestion: string }

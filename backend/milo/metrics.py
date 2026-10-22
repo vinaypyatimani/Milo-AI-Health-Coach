@@ -207,7 +207,11 @@ def progress_overview(plan: TrainingPlan, activities: list[Activity],
     """Compact per-week summary for the Progress charts."""
     out = []
     for w in plan.weeks:
-        if plan.week_start(w.week_number) > today:
+        start = plan.week_start(w.week_number)
+        logged = any(start <= a.start_time.date() <= start + timedelta(days=6) for a in activities)
+        # A future week still counts once workouts are logged for it (e.g. when
+        # the server's clock is pinned with MILO_TODAY or the user logs ahead).
+        if start > today and not logged:
             planned = [s for s in w.sessions if s.type != "rest"]
             out.append({"week_number": w.week_number, "status": "upcoming",
                         "planned_duration_min": sum(s.duration_min for s in planned),
@@ -218,7 +222,7 @@ def progress_overview(plan: TrainingPlan, activities: list[Activity],
         m = compute_week_metrics(plan, w.week_number, activities,
                                  recovery_by_week.get(w.week_number, []), [], max_hr)
         s = m["summary"]
-        in_progress = plan.week_start(w.week_number) + timedelta(days=6) >= today
+        in_progress = start <= today <= start + timedelta(days=6)
         out.append({
             "week_number": w.week_number,
             "status": "current" if in_progress else "done",

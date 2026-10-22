@@ -47,8 +47,8 @@ weekly training plan.
    later than to cause injury or burnout. Include rest days. Do not increase
    weekly training load by more than about 10% from week to week.
    Create a plan of 4 weeks unless the user asks for something else.
-   Use the date of next Monday after TODAY as start_date unless the user
-   asks for another start date.
+   Use TODAY as start_date if TODAY is a Monday, otherwise the next Monday,
+   unless the user asks for another start date.
 5. Output the plan in two parts:
    a) A short plain-language explanation of the plan and why it is built
       this way.
@@ -73,7 +73,10 @@ weekly training plan.
                "kind": "hr_zone | pace | rpe | none",
                "value": "string, e.g. 'Zone 2', '6:00-6:30 min/km', 'RPE 6'"
              },
-             "notes": "string"
+             "notes": "string",
+             "exercises": [
+               {"name": "Goblet squat", "detail": "3 x 10", "video_query": "goblet squat proper form"}
+             ]
            }
          ]
        }
@@ -95,6 +98,13 @@ weekly training plan.
      "hydration": "string",
      "notes": "preferences you took into account, and that this is general guidance"
    }
+
+   Every session except rest has 2-6 "exercises" in the order they are done.
+   Strength and mobility: the moves with sets x reps or time. Cardio: the
+   segments, e.g. warm-up walk, main run with its target, cool-down. Keep
+   "detail" short. "video_query" is a short search phrase for a how-to video
+   about doing that exercise with good form (e.g. "bodyweight lunge form",
+   "how to run in zone 2"). Rest sessions have "exercises": [].
 
    For hr_zone targets, write the value as "Zone N" or "Zone N-M" (zones 1-5)
    so the system can measure time in zone. For pace targets, use the format
