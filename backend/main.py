@@ -5,15 +5,18 @@ API docs:     http://localhost:8000/docs
 """
 from __future__ import annotations
 
+import json
+import queue
 import shutil
 import tempfile
+import threading
 from datetime import date, datetime
 from pathlib import Path
-from typing import Optional
+from typing import Literal, Optional
 
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, RedirectResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
@@ -32,10 +35,26 @@ app.add_middleware(CORSMiddleware, allow_origins=config.CORS_ORIGINS,
 store = Storage()
 coach = Coach(store)
 
+# LiteLLM takes several seconds to import. Loading it in the background at
+# startup means the first chat message doesn't have to wait for it.
+if config.WARMUP:
+    threading.Thread(target=lambda: __import__("litellm"), daemon=True).start()
+
+if config.SEED_DEMO and store.get_plan() is None:
+    from scripts.seed_demo import seed  # noqa: E402
+
+    seed(store)
+
 
 # ---- request bodies ----------------------------------------------------------
 class MessageIn(BaseModel):
     text: str = Field(min_length=1, max_length=4000)
+
+
+class ChatIn(BaseModel):
+    mode: Literal["coaching", "checkin"]
+    week: Optional[int] = Field(default=None, ge=1)
+    text: Optional[str] = Field(default=None, max_length=4000)  # None = start a new conversation
 
 
 class ManualActivityIn(BaseModel):
@@ -128,6 +147,44 @@ def checkin_message(week: int, body: MessageIn):
     return _llm_guard(coach.checkin_message, week, body.text)
 
 
+# ---- streaming chat (both modes) ------------------------------------------------------
+def _sse(event: dict) -> str:
+    return f"event: {event['type']}\ndata: {json.dumps(event)}\n\n"
+
+
+@app.post("/api/chat/stream")
+def chat_stream(body: ChatIn):
+    """Server-sent events: meta -> delta ... -> done (or error).
+
+    The reply is generated in a background thread that always runs to the end,
+    so the turn (and any plan change) is saved even if the browser disconnects
+    halfway, for example when the page is reloaded."""
+    if body.text is not None and not body.text.strip():
+        raise HTTPException(400, "Message is empty.")
+    events = _llm_guard(coach.stream, body.mode, body.week, body.text)
+    q: queue.Queue = queue.Queue()
+
+    def produce():
+        try:
+            for event in events:
+                q.put(event)
+        except LLMError as e:
+            q.put({"type": "error", "detail": f"The AI model could not be reached: {e}"})
+        except Exception as e:  # noqa: BLE001 - always end the stream with a readable error
+            q.put({"type": "error", "detail": f"Something went wrong: {e}"})
+        finally:
+            q.put(None)  # end of stream
+
+    threading.Thread(target=produce, daemon=True).start()
+
+    def generate():
+        while (event := q.get()) is not None:
+            yield _sse(event)
+
+    return StreamingResponse(generate(), media_type="text/event-stream",
+                             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+
 # ---- tracker data ------------------------------------------------------------------------
 @app.get("/api/activities")
 def list_activities():
@@ -208,3 +265,8 @@ if _DIST.exists():
     def spa(full_path: str):
         file = _DIST / full_path
         return FileResponse(file if file.is_file() else _DIST / "index.html")
+else:
+    # No frontend built yet: send visitors of the root URL to the API docs.
+    @app.get("/", include_in_schema=False)
+    def root():
+        return RedirectResponse("/docs")

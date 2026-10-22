@@ -10,8 +10,9 @@ BACKEND = Path(__file__).resolve().parent.parent
 SAMPLES = BACKEND.parent / "sample_data"
 sys.path.insert(0, str(BACKEND))
 
-os.environ["MILO_TODAY"] = "2026-10-19"   # pins "today" so week 1 is always last week
-os.environ["MILO_DB_PATH"] = ":memory:"   # tests never touch your real database
+os.environ["MILO_TODAY"] = "2026-10-19"
+os.environ["MILO_DB_PATH"] = ":memory:"
+os.environ["MILO_WARMUP"] = "0"
 
 
 @pytest.fixture(scope="session", autouse=True)

@@ -1,10 +1,9 @@
 """Milo's conversation logic for both modes.
 
-Each stored message looks like:
+Conversations are stored server-side. Each stored message looks like:
     {"role": "user" | "assistant", "content": str,
      "hidden": bool,            # trigger messages the UI doesn't show
      "safety": [...],           # safety flags found in a user message
-     "raw": str,                # the model's full reply, including plan JSON
      "plan_saved": bool}        # assistant message that created/updated the plan
 """
 from __future__ import annotations
@@ -13,6 +12,7 @@ import json
 import os
 from datetime import date, timedelta
 from pathlib import Path
+from typing import Iterator
 
 from . import llm, safety
 from .metrics import compute_week_metrics, progress_overview
@@ -21,6 +21,7 @@ from .schemas import TrainingPlan, UserProfile
 from .storage import Storage
 
 PROMPT_DIR = Path(__file__).parent / "prompts"
+COACHING_TRIGGER = "Hi Milo, I'd like to start a new training plan."
 
 
 def today() -> date:
@@ -37,11 +38,13 @@ def render(template_name: str, **values: str) -> str:
 
 
 def _json(obj) -> str:
+    """Compact JSON for the prompt: no indentation means fewer tokens,
+    which makes every reply faster and cheaper."""
     if obj is None:
         return "null"
     if hasattr(obj, "model_dump_json"):
-        return obj.model_dump_json(indent=2)
-    return json.dumps(obj, indent=2, default=str)
+        return obj.model_dump_json()
+    return json.dumps(obj, separators=(",", ":"), default=str)
 
 
 class Coach:
@@ -72,18 +75,28 @@ class Coach:
             msgs.append({"role": m["role"], "content": content})
         return msgs
 
-    def _turn(self, key: str, mode: str, text: str, metrics: dict | None,
-              hidden: bool = False, plan_reason: str = "") -> dict:
+    def _turn_events(self, key: str, mode: str, text: str, metrics: dict | None,
+                     hidden: bool = False, plan_reason: str = "") -> Iterator[dict]:
+        """One conversation turn as a stream of events:
+        meta (safety) -> delta (pieces of the reply) ... -> done (result)."""
         conv = self.store.get_conversation(key)
         flags = safety.check(text) if not hidden else []
+        urgent = safety.is_urgent(flags)
         conv.append({"role": "user", "content": text, "hidden": hidden,
                      "safety": [f.__dict__ for f in flags]})
+        yield {"type": "meta", "safety": [f.__dict__ for f in flags],
+               "urgent_banner": safety.URGENT_BANNER if urgent else None}
 
         system = self._system_prompt(mode, metrics)
-        raw = llm.chat(self._llm_messages(system, conv))
+        parts: list[str] = []
+        for piece in llm.chat_stream(self._llm_messages(system, conv)):
+            parts.append(piece)
+            yield {"type": "delta", "text": piece}
+        raw = "".join(parts)
         plan, error = parse_plan(raw)
 
         if error:  # one repair attempt: show the model its mistake
+            yield {"type": "status", "text": "Fixing the plan format…"}
             repair = self._llm_messages(system, conv) + [
                 {"role": "assistant", "content": raw},
                 {"role": "user", "content": f"[SYSTEM: {error}. Output the complete corrected "
@@ -95,7 +108,7 @@ class Coach:
                 raw = strip_plan_block(raw) + "\n\n```json\n" + plan.model_dump_json(indent=2) + "\n```"
 
         plan_saved = False
-        if plan and not safety.is_urgent(flags):
+        if plan and not urgent:
             self.store.save_plan(plan, reason=plan_reason)
             plan_saved = True
 
@@ -103,13 +116,48 @@ class Coach:
         msg = {"role": "assistant", "content": display, "raw": raw, "plan_saved": plan_saved}
         conv.append(msg)
         self.store.save_conversation(key, conv)
-        return {
+        yield {
+            "type": "done",
             "reply": display,
             "plan_saved": plan_saved,
             "plan_error": error,
             "safety": [f.__dict__ for f in flags],
-            "urgent_banner": safety.URGENT_BANNER if safety.is_urgent(flags) else None,
+            "urgent_banner": safety.URGENT_BANNER if urgent else None,
+            "message": {"role": "assistant", "content": display,
+                        "plan_saved": plan_saved, "safety": []},
         }
+
+    def _turn(self, key: str, mode: str, text: str, metrics: dict | None,
+              hidden: bool = False, plan_reason: str = "") -> dict:
+        """The same turn without streaming: returns only the final result."""
+        done: dict = {}
+        for event in self._turn_events(key, mode, text, metrics, hidden, plan_reason):
+            if event["type"] == "done":
+                done = event
+        return {k: done[k] for k in ("reply", "plan_saved", "plan_error", "safety", "urgent_banner")}
+
+    def stream(self, mode: str, week: int | None = None, text: str | None = None) -> Iterator[dict]:
+        """Streaming entry point for both modes. text=None starts a new conversation.
+
+        Checks (plan exists, week is valid) run before the stream starts, so the
+        API can answer with a normal error code instead of a broken stream."""
+        if mode == "coaching":
+            if text is None:
+                self.store.delete_conversation("coaching")
+                return self._turn_events("coaching", "coaching", COACHING_TRIGGER, None,
+                                         hidden=True, plan_reason="created in Coaching Mode")
+            return self._turn_events("coaching", "coaching", text, None,
+                                     plan_reason="updated in Coaching Mode")
+        if week is None:
+            raise ValueError("A check-in needs a week number.")
+        key = f"checkin:{week}"
+        metrics = self.week_metrics(week)
+        if text is None:
+            self.store.delete_conversation(key)
+            return self._turn_events(key, "checkin", f"Let's do my check-in for week {week}.",
+                                     metrics, hidden=True, plan_reason=f"check-in week {week}")
+        return self._turn_events(key, "checkin", text, metrics,
+                                 plan_reason=f"check-in week {week}")
 
     @staticmethod
     def public_conversation(conv: list[dict]) -> list[dict]:
@@ -124,8 +172,7 @@ class Coach:
 
     def coaching_start(self) -> dict:
         self.store.delete_conversation("coaching")
-        return self._turn("coaching", "coaching",
-                          "Hi Milo, I'd like to start a new training plan.", None,
+        return self._turn("coaching", "coaching", COACHING_TRIGGER, None,
                           hidden=True, plan_reason="created in Coaching Mode")
 
     def coaching_message(self, text: str) -> dict:

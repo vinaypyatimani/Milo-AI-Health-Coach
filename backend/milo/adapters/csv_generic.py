@@ -4,7 +4,8 @@ Activities - required columns: date, type, duration_min
              optional: time (HH:MM), distance_km, avg_hr, max_hr, notes
 Recovery   - required column: date, plus any of sleep_hours, resting_hr, hrv_ms
 
-Rows with a `type` are activities, rows without one are recovery days.
+A file can contain both: rows with a `type` are activities, rows without
+one are recovery days.
 """
 from __future__ import annotations
 

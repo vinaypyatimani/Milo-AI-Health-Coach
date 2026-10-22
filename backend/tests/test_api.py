@@ -33,10 +33,10 @@ def test_full_flow(client, fake_llm, plan_json, sample_files):
 
     # Upload tracker files
     files = [("files", (f.name, f.read_bytes())) for f in sorted(sample_files.iterdir())
-             if f.suffix in (".gpx", ".tcx", ".fit", ".csv")]   # no Apple Health yet
+             if f.suffix != ".json"]
     up = client.post("/api/activities/upload", files=files).json()
     assert all(f["ok"] for f in up["files"])
-    assert len(client.get("/api/activities").json()) == 3
+    assert len(client.get("/api/activities").json()) == 4
 
     # Duplicate upload is skipped
     up2 = client.post("/api/activities/upload", files=files[:1]).json()
@@ -44,11 +44,11 @@ def test_full_flow(client, fake_llm, plan_json, sample_files):
 
     # Metrics + check-in. The system prompt must contain the computed metrics.
     m = client.get("/api/weeks/1/metrics").json()
-    assert m["summary"]["completion_rate_pct"] == 75   # Sunday yoga is in Apple Health
+    assert m["summary"]["completion_rate_pct"] == 100
     fake_llm.replies = ["Nice week! How was your energy?"]
     client.post("/api/checkin/1/start")
     system_prompt = fake_llm.calls[-1][0]["content"]
-    assert '"completion_rate_pct": 75' in system_prompt and "MODE: checkin" in system_prompt
+    assert '"completion_rate_pct":100' in system_prompt and "MODE: checkin" in system_prompt
 
     # Safety: urgent message adds an alert and blocks plan updates in that reply
     fake_llm.replies = [f"Please see a doctor.\n```json\n{json.dumps(plan_json)}\n```"]

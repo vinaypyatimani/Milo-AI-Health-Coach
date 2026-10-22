@@ -33,6 +33,7 @@ def _avg(values: list[Optional[float]]) -> Optional[float]:
     vals = [v for v in values if v is not None]
     return mean(vals) if vals else None
 
+
 def _match(plan: TrainingPlan, week_number: int, planned: list[PlannedSession],
            activities: list[Activity]):
     """Match activities to planned sessions.
@@ -67,6 +68,7 @@ def _match(plan: TrainingPlan, week_number: int, planned: list[PlannedSession],
         ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"])}
     matches.sort(key=lambda m: order[m[0].day])
     return matches, remaining
+
 
 def _warnings(planned: Optional[PlannedSession], a: Activity, max_hr: Optional[int]) -> list[str]:
     w = []
@@ -108,6 +110,7 @@ def _recovery(recovery: list[RecoveryDay], baseline: list[RecoveryDay]) -> dict:
                                        if hrv and base_hrv else None),
         "baseline_period": "previous 21 days",
     }
+
 
 def compute_week_metrics(plan: TrainingPlan, week_number: int,
                          activities: list[Activity], recovery: list[RecoveryDay],
@@ -196,6 +199,7 @@ def compute_week_metrics(plan: TrainingPlan, week_number: int,
         "data_warnings": warnings,
         "has_tracker_data": bool(week_acts),
     }
+
 
 def progress_overview(plan: TrainingPlan, activities: list[Activity],
                       recovery_by_week: dict[int, list[RecoveryDay]],

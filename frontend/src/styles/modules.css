@@ -1,0 +1,132 @@
+/* ---- module grid ----------------------------------------------------------- */
+.modules { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: start; }
+.modules.one-col { grid-template-columns: minmax(0, 1fr); }
+.span-all { grid-column: 1 / -1; min-width: 0; }
+.stack { display: flex; flex-direction: column; gap: 10px; }
+@media (max-width: 760px) { .modules { grid-template-columns: minmax(0, 1fr); } }
+
+.card {
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg);
+  padding: 18px 20px; min-width: 0;
+}
+.card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+.card-danger { border-color: color-mix(in srgb, var(--urgent) 30%, var(--line)); }
+
+.rows { list-style: none; padding: 0; margin: 0; }
+.rows li { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid var(--line); font-size: 0.92rem; }
+.rows li:first-child { border-top: 0; padding-top: 2px; }
+.rows .k { color: var(--muted); }
+
+.dot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+.dot-completed { background: var(--accent); }
+.dot-moved { background: var(--warn); }
+.dot-missed { border: 1.5px solid var(--planned); }
+.dot-extra { background: var(--ink-2); }
+
+.empty { max-width: 480px; padding: 64px 0; }
+.empty h2 { font-size: 1.6rem; margin-bottom: 10px; }
+.empty p { color: var(--muted); margin-bottom: 20px; }
+
+/* ---- week strip: planned = outline, done = fill ------------------------------ */
+.strip { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; }
+.strip-day { display: flex; flex-direction: column; gap: 8px; min-width: 0; padding: 6px; margin: -6px; border-radius: var(--r-md); }
+.strip-day.is-new { background: var(--new-soft); animation: pulse-new 1.6s ease-out 2; }
+@keyframes pulse-new { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--new) 45%, transparent); } 100% { box-shadow: 0 0 0 10px transparent; } }
+.strip-label { display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--muted); }
+.strip-col {
+  position: relative; height: 150px; border-radius: var(--r-sm);
+  background: repeating-linear-gradient(to top, var(--line) 0 1px, transparent 1px 37.5px);
+}
+.bar-planned {
+  position: absolute; left: 8%; right: 8%; bottom: 0; z-index: 1;
+  border: 1.5px dashed var(--planned); border-bottom: 0; border-radius: 8px 8px 0 0;
+  transition: height 300ms ease;
+}
+.bar-actual {
+  position: absolute; left: 22%; right: 22%; bottom: 0; background: var(--accent);
+  border-radius: 7px 7px 0 0; transform-origin: bottom;
+  animation: grow 600ms cubic-bezier(.2,.8,.2,1) both; transition: height 300ms ease;
+}
+.bar-actual.extra { background: var(--ink-2); }
+@keyframes grow { from { transform: scaleY(0); } }
+.strip-meta { font-size: 0.8rem; line-height: 1.35; min-height: 2.7em; }
+.strip-meta .title { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.st-done { color: var(--accent); font-weight: 500; }
+.st-moved { color: var(--warn); font-weight: 500; }
+.st-missed { color: var(--muted); text-decoration: line-through; }
+.st-extra { color: var(--ink-2); }
+.st-new { color: var(--new); font-weight: 600; }
+
+.legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 0.8rem; color: var(--muted); margin-top: 14px; }
+.card-aside .legend { margin-top: 0; }
+.swatch { display: inline-block; width: 11px; height: 11px; border-radius: 3px; vertical-align: -1px; margin-right: 6px; }
+.swatch-planned { border: 1.5px dashed var(--planned); }
+.swatch-done { background: var(--accent); }
+.swatch-extra { background: var(--ink-2); }
+
+@media (max-width: 640px) {
+  .strip { gap: 4px; }
+  .strip-col { height: 110px; }
+  .strip-meta { display: none; }
+  .strip-label { justify-content: center; }
+  .strip-label .num { display: none; }
+}
+
+/* ---- stats row -------------------------------------------------------------------- */
+.stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+.stat { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 16px 18px; min-width: 0; }
+.stat-value { font: 700 1.9rem/1.1 var(--font-display); letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.stat-value small { font: 500 0.85rem var(--font-body); color: var(--muted); margin-left: 5px; letter-spacing: 0; }
+.stat-label { font-size: 0.82rem; color: var(--muted); margin-top: 4px; }
+.meter { height: 4px; border-radius: 4px; background: var(--surface-2); margin-top: 12px; overflow: hidden; }
+.meter span { display: block; height: 100%; background: var(--accent); border-radius: 4px; transition: width 500ms ease; }
+@media (max-width: 900px) { .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* ---- plan overview grid -------------------------------------------------------------- */
+.plan-grid-wrap { overflow-x: auto; margin: 0 -4px; padding: 0 4px; }
+.plan-grid { min-width: 820px; display: flex; flex-direction: column; gap: 6px; }
+.plan-row { display: grid; grid-template-columns: 150px repeat(7, minmax(0, 1fr)) 72px; gap: 6px; align-items: stretch; }
+.plan-row-head { font-size: 0.78rem; color: var(--muted); padding: 0 2px; }
+.plan-week-cell {
+  display: flex; flex-direction: column; gap: 2px; text-align: left; padding: 8px 10px; border-radius: var(--r-md);
+  background: none; border: 1px solid transparent; cursor: pointer; color: inherit;
+}
+.plan-row-head .plan-week-cell { padding: 0 10px; cursor: default; }
+button.plan-week-cell:hover { background: var(--surface-2); }
+.plan-week-cell .focus { color: var(--ink-2); }
+.plan-row.is-current .plan-week-cell { border-color: var(--accent); background: var(--accent-soft); }
+.plan-cell {
+  position: relative; display: flex; flex-direction: column; gap: 3px; padding: 9px 10px; min-height: 72px;
+  border-radius: var(--r-md); background: var(--surface-2); border: 1px solid var(--line); min-width: 0;
+}
+.plan-cell.is-rest { background: none; border-style: dashed; justify-content: center; }
+.plan-cell.is-new { background: var(--new-soft); border-color: var(--new); animation: pulse-new 1.6s ease-out 2; }
+.pc-title { font-weight: 600; font-size: 0.85rem; line-height: 1.25; overflow: hidden; text-overflow: ellipsis; }
+.pc-meta { font-size: 0.75rem; color: var(--muted); }
+.pc-rest { font-size: 0.78rem; color: var(--muted); text-align: center; }
+.pc-new { position: absolute; top: -8px; right: 6px; font-size: 0.66rem; font-weight: 700; background: var(--new); color: var(--surface); padding: 1px 6px; border-radius: 999px; }
+.plan-cell.t-run { box-shadow: inset 3px 0 0 var(--accent); }
+.plan-cell.t-strength { box-shadow: inset 3px 0 0 var(--ink-2); }
+.plan-cell.t-mobility, .plan-cell.t-walk { box-shadow: inset 3px 0 0 var(--planned); }
+.plan-cell.t-cycling, .plan-cell.t-swim { box-shadow: inset 3px 0 0 var(--warn); }
+.plan-total { align-self: center; font-size: 0.85rem; color: var(--ink-2); }
+
+/* ---- uploads ------------------------------------------------------------------------- */
+.drop {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+  padding: 28px 16px; text-align: center; cursor: pointer; color: var(--muted);
+  border: 1.5px dashed var(--line-strong); border-radius: var(--r-md); background: var(--surface-2);
+  transition: background 120ms, border-color 120ms;
+}
+.drop strong { color: var(--ink); }
+.drop:hover, .drop.over { border-color: var(--accent); background: var(--accent-soft); }
+.drop.busy { opacity: 0.7; pointer-events: none; }
+.formats { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+
+/* ---- charts ---------------------------------------------------------------------------- */
+.chart { width: 100%; height: auto; display: block; }
+.chart .axis { fill: var(--muted); font: 12px var(--font-body); }
+.chart .value { fill: var(--ink-2); font: 600 12px var(--font-body); }
+.chart .grid { stroke: var(--line); }
+.chart .planned { fill: none; stroke: var(--planned); stroke-width: 1.5; stroke-dasharray: 5 4; }
+.chart .actual { fill: var(--accent); }

@@ -1,4 +1,9 @@
-"""Load the sample plan, profile and tracker files into the database."""
+"""Load the sample plan, profile and tracker files into the database so the
+app can be demoed without first chatting through Coaching Mode.
+
+Run:  python scripts/seed_demo.py      (from the backend/ folder)
+Then set MILO_TODAY=2026-10-19 so "this week" matches the sample data.
+"""
 from __future__ import annotations
 
 import json
@@ -24,7 +29,7 @@ def seed(store: Storage) -> None:
             continue
         try:
             result = parse_file(f)
-        except AdapterError as e:   # e.g. the Apple Health zip, until you add that adapter
+        except AdapterError as e:   # e.g. the Apple Health zip, without that adapter
             print(f"Skipped {f.name}: {e}")
             continue
         store.add_activities(result.activities)

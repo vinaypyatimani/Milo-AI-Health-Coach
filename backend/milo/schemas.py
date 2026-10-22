@@ -1,4 +1,9 @@
-"""Data models shared across Milo."""
+"""Data models shared across Milo.
+
+Every tracker adapter converts its source format into `Activity` and
+`RecoveryDay` objects, so the metrics engine never needs to know where the
+data came from.
+"""
 from __future__ import annotations
 
 from datetime import date, datetime, timedelta
@@ -8,11 +13,18 @@ from pydantic import BaseModel, Field, field_validator
 
 DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
 
-SessionType = Literal["run", "strength", "cycling", "swim", "walk", "mobility", "rest", "other"]
+SessionType = Literal[
+    "run", "strength", "cycling", "swim", "walk", "mobility", "rest", "other"
+]
 
+
+# --------------------------------------------------------------------------
+# Training plan (produced by the LLM in Coaching Mode, validated here)
+# --------------------------------------------------------------------------
 class TargetIntensity(BaseModel):
-    kind: Literal["hr_zone", "pace", "rpe", "none"]
+    kind: Literal["hr_zone", "pace", "rpe", "none"] = "none"
     value: str = ""
+
 
 class PlannedSession(BaseModel):
     day: str
@@ -26,7 +38,7 @@ class PlannedSession(BaseModel):
     @field_validator("day")
     @classmethod
     def _valid_day(cls, v: str) -> str:
-        v = v.strip().capitalize()        # "tuesday " -> "Tuesday"
+        v = v.strip().capitalize()
         if v not in DAYS:
             raise ValueError(f"day must be one of {DAYS}, got {v!r}")
         return v
@@ -34,15 +46,17 @@ class PlannedSession(BaseModel):
     @field_validator("type", mode="before")
     @classmethod
     def _lower_type(cls, v):
-        return v.strip().lower() if isinstance(v, str) else v   # "Run" -> "run"
+        return v.strip().lower() if isinstance(v, str) else v
+
 
 class PlanWeek(BaseModel):
     week_number: int
     focus: str = ""
     sessions: list[PlannedSession]
 
+
 class TrainingPlan(BaseModel):
-    goal:str
+    goal: str
     start_date: date
     weeks: list[PlanWeek]
 
@@ -64,19 +78,24 @@ class TrainingPlan(BaseModel):
     def week_for_date(self, d: date) -> int:
         return (d - self.start_date).days // 7 + 1
 
+
+# --------------------------------------------------------------------------
+# Tracker data (produced by adapters)
+# --------------------------------------------------------------------------
 class HRSample(BaseModel):
     time: datetime
     bpm: int
 
+
 class Activity(BaseModel):
-    source: str                       # "gpx", "tcx", "fit", "apple_health", "csv", "manual"
+    source: str                      # e.g. "gpx", "tcx", "fit", "apple_health", "manual"
     type: SessionType
     start_time: datetime
     duration_min: float
     distance_km: Optional[float] = None
     avg_hr: Optional[float] = None
     max_hr: Optional[float] = None
-    hr_samples: list[HRSample] = Field(default_factory=list)   # for time in zone
+    hr_samples: list[HRSample] = Field(default_factory=list)
     notes: str = ""
 
     @property
@@ -89,6 +108,7 @@ class Activity(BaseModel):
             return self.duration_min / self.distance_km
         return None
 
+
 class RecoveryDay(BaseModel):
     day: date
     sleep_hours: Optional[float] = None
@@ -96,10 +116,11 @@ class RecoveryDay(BaseModel):
     hrv_ms: Optional[float] = None
     source: str = ""
 
+
 class UserProfile(BaseModel):
     name: str
     age: Optional[int] = None
-    max_hr: Optional[int] = None      # if unknown, estimated as 220 - age
+    max_hr: Optional[int] = None     # if unknown, estimated as 220 - age
     tracker: str = ""
     notes: str = ""
 

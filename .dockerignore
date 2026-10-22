@@ -1,8 +1,8 @@
 **/node_modules
 **/__pycache__
 **/.pytest_cache
-**/.venv
 frontend/dist
+frontend/dist-demo
 backend/data
 backend/.env
 backend/evaluation/results

@@ -1,7 +1,8 @@
 """Common helpers for tracker adapters.
 
 An adapter takes a file path and returns an `ImportResult` with activities
-and/or recovery days in Milo's common format.
+and/or recovery days in Milo's common format. To support a new device or
+platform, write one function and register it in `adapters/__init__.py`.
 """
 from __future__ import annotations
 

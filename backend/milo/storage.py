@@ -1,7 +1,7 @@
 """SQLite storage. Simple single-user design: one profile, one active plan.
 
 For a multi-user deployment, add a user_id column to every table and an
-auth layer in the API.
+auth layer in the API (see README, "Going multi-user").
 """
 from __future__ import annotations
 

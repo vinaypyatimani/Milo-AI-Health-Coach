@@ -1,8 +1,9 @@
 """Deterministic safety pre-check.
 
-Runs on every user message before the model is called. If it finds a red
-flag, a SAFETY_ALERT note is added so the model addresses it first, and the
-UI shows a fixed safety banner for urgent symptoms.
+The system prompt already tells Milo how to handle warning signs, but LLMs
+can miss them. This keyword check runs on every user message *before* the
+model is called. If it finds a red flag, it adds a SAFETY_ALERT system note
+so the model addresses it first, and the UI can show a fixed safety banner.
 """
 from __future__ import annotations
 

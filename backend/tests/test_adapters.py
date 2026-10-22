@@ -29,6 +29,14 @@ def test_fit(sample_files):
     assert a.max_hr >= a.avg_hr
 
 
+def test_apple_health_zip(sample_files):
+    r = parse_file(sample_files / "apple_health_export.zip")
+    (a,) = r.activities
+    assert a.type == "mobility" and a.duration_min == 20 and a.avg_hr == 92
+    (d,) = r.recovery
+    assert d.resting_hr == 58 and d.sleep_hours == pytest.approx(6.25)
+
+
 def test_csv_recovery(sample_files):
     r = parse_file(sample_files / "recovery.csv")
     assert len(r.recovery) == 28 and not r.activities

@@ -1,0 +1,88 @@
+/* ---------------------------------------------------------------------------
+   Milo design tokens
+   Layout: top bar, a grid of modules on the left, Milo docked on the right.
+   Color has meaning: cobalt = done / Milo, amber = moved or worth a look,
+   red = urgent safety only. Planned work is an outline, done work is a fill.
+--------------------------------------------------------------------------- */
+:root {
+  --bg: #eef1f6;
+  --surface: #ffffff;
+  --surface-2: #f6f8fb;
+  --ink: #131a2a;
+  --ink-2: #384257;
+  --muted: #64708a;
+  --line: #e1e6ef;
+  --line-strong: #c8d0de;
+
+  --accent: #2f54eb;
+  --accent-strong: #2443c8;
+  --accent-soft: #e7ecfe;
+  --accent-ink: #ffffff;
+  --planned: #9aa6bd;
+
+  --warn: #b5650f;
+  --warn-soft: #fdf0de;
+  --urgent: #c42b23;
+  --urgent-soft: #fdeceb;
+  --new: #7a3fe0;
+  --new-soft: #f1eafe;
+
+  --font-display: "Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif;
+  --font-body: "Figtree", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 16px;
+  --dock-w: 400px;
+  --top-h: 60px;
+
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0c111c;
+    --surface: #141b2a;
+    --surface-2: #19212f;
+    --ink: #e7ebf3;
+    --ink-2: #c3cad8;
+    --muted: #8d98ae;
+    --line: #242d3f;
+    --line-strong: #344057;
+    --accent: #7390ff;
+    --accent-strong: #8ea5ff;
+    --accent-soft: #1b2650;
+    --accent-ink: #0b1130;
+    --planned: #56627c;
+    --warn: #eaa75a;
+    --warn-soft: #33261a;
+    --urgent: #ff7d73;
+    --urgent-soft: #3a1c1c;
+    --new: #b393ff;
+    --new-soft: #2a1f45;
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg: #0c111c;
+  --surface: #141b2a;
+  --surface-2: #19212f;
+  --ink: #e7ebf3;
+  --ink-2: #c3cad8;
+  --muted: #8d98ae;
+  --line: #242d3f;
+  --line-strong: #344057;
+  --accent: #7390ff;
+  --accent-strong: #8ea5ff;
+  --accent-soft: #1b2650;
+  --accent-ink: #0b1130;
+  --planned: #56627c;
+  --warn: #eaa75a;
+  --warn-soft: #33261a;
+  --urgent: #ff7d73;
+  --urgent-soft: #3a1c1c;
+  --new: #b393ff;
+  --new-soft: #2a1f45;
+  color-scheme: dark;
+}
