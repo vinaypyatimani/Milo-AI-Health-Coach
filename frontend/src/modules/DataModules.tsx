@@ -6,7 +6,7 @@ import { fmtDate, fmtMin, fmtNum, typeLabel } from "../lib/format";
 import { Banner, Card } from "../components/ui";
 import { IconUpload } from "../components/icons";
 
-const FORMATS = [".fit", ".gpx", ".tcx", ".csv"];
+const FORMATS = [".fit", ".gpx", ".tcx", "Apple Health .zip", ".csv"];
 const TYPES: SessionType[] = ["run", "walk", "cycling", "swim", "strength", "mobility", "other"];
 const today = () => new Date().toISOString().slice(0, 10);
 
@@ -43,9 +43,9 @@ export function UploadCard({ notify }: { notify: (m: string) => void }) {
            aria-label="Upload workout files">
         <IconUpload width={26} height={26} />
         <strong>{uploading ? "Importing…" : "Drop files or choose from your computer"}</strong>
-        <span className="muted small">Garmin, Polar, Suunto, Coros, Wahoo and more</span>
+        <span className="muted small">Garmin, Polar, Suunto, Coros, Wahoo, Apple Watch and more</span>
         <div className="formats">{FORMATS.map((f) => <span className="chip" key={f}>{f}</span>)}</div>
-        <input ref={fileRef} type="file" multiple hidden accept=".fit,.gpx,.tcx,.csv"
+        <input ref={fileRef} type="file" multiple hidden accept=".fit,.gpx,.tcx,.zip,.xml,.csv"
                onChange={(e) => { upload(Array.from(e.target.files ?? [])); e.target.value = ""; }} />
       </div>
       {report && (

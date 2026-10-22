@@ -129,7 +129,7 @@ export const mockApi = {
   upload: async (files: File[]): Promise<UploadReport> => {
     await wait(900);
     return {
-      supported: [".csv", ".fit", ".gpx", ".tcx"],
+      supported: [".csv", ".fit", ".gpx", ".tcx", ".xml", ".zip"],
       files: files.map((f) => ({ file: f.name, ok: true as const, activities_added: 0, duplicates_skipped: 1, recovery_days: 0, warnings: ["Demo mode: files aren't processed."] })),
     };
   },

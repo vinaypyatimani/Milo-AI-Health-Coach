@@ -192,6 +192,15 @@ def list_activities():
              "hr_samples": len(a.hr_samples)} for i, a in store.get_activities()]
 
 
+def _remove_quietly(path: Path) -> None:
+    """Delete a temporary upload. On Windows, another program (often the virus
+    scanner) can briefly hold a new file; a leftover temp file is harmless."""
+    try:
+        path.unlink(missing_ok=True)
+    except OSError:
+        pass
+
+
 @app.post("/api/activities/upload")
 async def upload(files: list[UploadFile] = File(...)):
     report = []
@@ -213,7 +222,7 @@ async def upload(files: list[UploadFile] = File(...)):
         except AdapterError as e:
             report.append({"file": f.filename, "ok": False, "error": str(e)})
         finally:
-            tmp_path.unlink(missing_ok=True)
+            _remove_quietly(tmp_path)
     return {"files": report, "supported": SUPPORTED_EXTENSIONS}
 
 

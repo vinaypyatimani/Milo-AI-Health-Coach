@@ -102,7 +102,7 @@ def write_gpx(path: Path, start_utc: datetime, minutes: float, km: float, hrs: l
         '<gpx version="1.1" creator="Milo sample generator" '
         'xmlns="http://www.topografix.com/GPX/1/1" '
         'xmlns:gpxtpx="http://www.garmin.com/xmlschemas/TrackPointExtension/v1">\n'
-        f'<trk><name>Easy run</name><type>running</type><trkseg>\n'
+        '<trk><name>Easy run</name><type>running</type><trkseg>\n'
         + "\n".join(rows) + "\n</trkseg></trk></gpx>\n", encoding="utf-8")
 
 

@@ -48,7 +48,7 @@ def time_in_bpm_range(activity: Activity, lo: float, hi: float) -> Optional[tupl
     if len(samples) < 2:
         return None
     in_range = total = 0.0
-    for a, b in zip(samples, samples[1:]):
+    for a, b in zip(samples, samples[1:], strict=False):  # each sample with the next one
         dt = min((b.time - a.time).total_seconds(), MAX_SAMPLE_GAP_S)
         if dt <= 0:
             continue

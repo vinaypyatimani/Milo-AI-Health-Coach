@@ -15,7 +15,8 @@ import zipfile
 from collections import defaultdict
 from datetime import date, datetime, timedelta
 from pathlib import Path
-from typing import IO
+from contextlib import contextmanager
+from typing import IO, Iterator
 
 from .. import config
 from ..schemas import Activity, HRSample, RecoveryDay
@@ -33,15 +34,21 @@ def _dt(text: str) -> datetime:
     return to_local(datetime.strptime(text, "%Y-%m-%d %H:%M:%S %z"))
 
 
-def _open(path: Path) -> IO[bytes]:
+@contextmanager
+def _open(path: Path) -> Iterator[IO[bytes]]:
+    """Open export.xml, directly or inside the zip, and close everything afterwards
+    (Windows can't delete a file that is still open)."""
     if zipfile.is_zipfile(path):
-        z = zipfile.ZipFile(path)
-        name = next((n for n in z.namelist()
-                     if n.endswith("export.xml") and "cda" not in n.lower()), None)
-        if not name:
-            raise AdapterError("No export.xml found in the zip. Upload Apple Health's export.zip.")
-        return z.open(name)
-    return open(path, "rb")
+        with zipfile.ZipFile(path) as z:
+            name = next((n for n in z.namelist()
+                         if n.endswith("export.xml") and "cda" not in n.lower()), None)
+            if not name:
+                raise AdapterError("No export.xml found in the zip. Upload Apple Health's export.zip.")
+            with z.open(name) as f:
+                yield f
+    else:
+        with open(path, "rb") as f:
+            yield f
 
 
 def _to_km(value: float, unit: str) -> float:

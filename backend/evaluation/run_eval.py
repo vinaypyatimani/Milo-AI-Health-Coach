@@ -155,7 +155,7 @@ def main() -> None:
 
 def write_report(results: list[dict], out_dir: Path) -> None:
     ok = [r for r in results if "criteria" in r["judge"]]
-    lines = [f"# Milo check-in evaluation\n",
+    lines = ["# Milo check-in evaluation\n",
              f"Model: `{config.MILO_MODEL}` · Judge: `{config.JUDGE_MODEL}` · "
              f"Date: {date.today().isoformat()}\n"]
     if ok:

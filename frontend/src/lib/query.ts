@@ -43,7 +43,7 @@ export function fetchQuery<T>(key: string, fn: () => Promise<T>): Promise<T> {
 
 /** Mark keys as stale. A key ending in ":" matches every key with that prefix. */
 export function invalidate(...keys: string[]) {
-  for (const k of [...cache.keys()]) {
+  for (const k of cache.keys()) {  // updating existing keys while iterating is safe
     if (keys.some((p) => (p.endsWith(":") ? k.startsWith(p) : k === p))) update(k, { stale: true });
   }
 }

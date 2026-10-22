@@ -83,3 +83,16 @@ def test_manual_entry_and_recovery(client):
     assert client.post("/api/activities/manual", json={
         "date": "2026-10-13", "type": "run", "duration_min": 30}).status_code == 409
     assert client.post("/api/recovery", json={"date": "2026-10-13", "sleep_hours": 7}).status_code == 200
+
+
+def test_upload_survives_locked_temp_file(client, sample_files, monkeypatch):
+    """On Windows, a virus scanner can hold a new file; deleting it then fails."""
+    from pathlib import Path
+
+    def locked(self, missing_ok=False):
+        raise PermissionError(32, "The process cannot access the file because it is being used by another process")
+
+    monkeypatch.setattr(Path, "unlink", locked)
+    f = sample_files / "week1_tue_easy_run.gpx"
+    r = client.post("/api/activities/upload", files=[("files", (f.name, f.read_bytes()))])
+    assert r.status_code == 200 and r.json()["files"][0]["ok"]
