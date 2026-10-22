@@ -2,7 +2,7 @@ import { useState } from "react";
 import { api, isDemo } from "../lib/api";
 import type { PlanResponse, TrainingPlan } from "../lib/types";
 import { DAYS } from "../lib/types";
-import { addDays, fmtDate, fmtMin, localToday, typeLabel } from "../lib/format";
+import { addDays, fmtDate, fmtMin, localToday, planBegins, typeLabel } from "../lib/format";
 import { ChatPanel } from "../chat/ChatPanel";
 import { useConversation } from "../chat/useConversation";
 import { PlanCalendar, sessionOn, type DaySel } from "../modules/PlanCalendar";
@@ -23,10 +23,11 @@ function defaultDay(p: TrainingPlan, today: string): DaySel | null {
   let first: DaySel | null = null;
   for (const w of p.weeks) {
     for (const [i, day] of DAYS.entries()) {
-      if (!w.sessions.some((s) => s.day === day && s.type !== "rest")) continue;
+      const date = addDays(p.start_date, (w.week_number - 1) * 7 + i);
+      if (date < planBegins(p) || !w.sessions.some((s) => s.day === day && s.type !== "rest")) continue;
       const d = { week: w.week_number, day };
       first ??= d;
-      if (addDays(p.start_date, (w.week_number - 1) * 7 + i) >= today) return d;
+      if (date >= today) return d;
     }
   }
   return first;
@@ -66,7 +67,9 @@ export function PlanPage({ plan, changed, onPlanSaved, onStartOver }: Props) {
 
   const selected = picked === undefined ? defaultDay(p, today) : picked;
   const session = selected ? sessionOn(p, selected) : undefined;
-  const total = p.weeks.reduce((s, w) => s + w.sessions.reduce((a, x) => a + (x.type === "rest" ? 0 : x.duration_min), 0), 0);
+  const begins = planBegins(p);
+  const total = p.weeks.reduce((s, w) => s + w.sessions.reduce((a, x) =>
+    a + (x.type === "rest" || addDays(p.start_date, (w.week_number - 1) * 7 + DAYS.indexOf(x.day)) < begins ? 0 : x.duration_min), 0), 0);
   const end = addDays(p.start_date, p.weeks.length * 7 - 1);
 
   return (
@@ -77,7 +80,7 @@ export function PlanPage({ plan, changed, onPlanSaved, onStartOver }: Props) {
         <header className="section-head">
           <div>
             <h1 className="plan-goal">{p.goal}</h1>
-            <p className="muted small">{fmtDate(p.start_date)} – {fmtDate(end)} · {p.weeks.length} weeks · {fmtMin(total)} in total
+            <p className="muted small">{fmtDate(begins)} – {fmtDate(end)} · {p.weeks.length} weeks · {fmtMin(total)} in total
               {changed.size > 0 && <span className="chip chip-new" style={{ marginLeft: 8 }}>{changed.size} day{changed.size === 1 ? "" : "s"} updated</span>}</p>
           </div>
           <div className="downloads">

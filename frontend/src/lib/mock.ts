@@ -59,6 +59,7 @@ const COACHING_SCRIPT = [
   "Great goal. How much are you training at the moment?",
   "How many days a week can you train, and for how long each time?",
   "Any injuries, pain or health conditions I should know about?",
+  "Got it. Would you like to start today or next Monday?",
 ];
 
 const CHECKIN_SCRIPT = [

@@ -25,7 +25,7 @@ def seed(store: Storage) -> None:
     plan = TrainingPlan.model_validate(json.loads((SAMPLES / "sample_plan.json").read_text()))
     store.save_plan(plan, reason="demo seed")
     for f in sorted(SAMPLES.iterdir()):
-        if f.suffix == ".json":
+        if not f.is_file() or f.suffix in (".json", ".md"):   # skips test_sets/
             continue
         try:
             result = parse_file(f)

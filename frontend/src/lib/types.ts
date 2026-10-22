@@ -30,7 +30,13 @@ export interface NutritionPlan {
   hydration: string;
   notes: string;
 }
-export interface TrainingPlan { goal: string; start_date: string; weeks: PlanWeek[]; nutrition?: NutritionPlan | null }
+export interface TrainingPlan {
+  goal: string;
+  start_date: string;          // always a Monday
+  first_day?: string | null;   // "start today": week 1 days before this don't count
+  weeks: PlanWeek[];
+  nutrition?: NutritionPlan | null;
+}
 
 /** Tokens and cost of one reply (estimated when the provider reports nothing). */
 export interface Usage { model: string; input_tokens: number; output_tokens: number; cost_usd: number | null; estimated: boolean }

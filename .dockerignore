@@ -6,3 +6,4 @@ frontend/dist-demo
 backend/data
 backend/.env
 backend/evaluation/results
+sample_data/test_sets

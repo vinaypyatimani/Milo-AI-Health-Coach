@@ -115,7 +115,7 @@ class Coach:
 
         plan_saved = False
         if plan and not urgent:
-            plan = self._keep_nutrition(plan, plan_source)
+            plan = self._keep_first_day(self._keep_nutrition(plan, plan_source))
             self.store.save_plan(plan, reason=plan_reason)
             plan_saved = True
 
@@ -147,7 +147,16 @@ class Coach:
             mentions_nutrition = False
         current = self.store.get_plan()
         if not mentions_nutrition and current and current.nutrition:
-            return plan.model_copy(update={"nutrition": current.nutrition})
+            plan = plan.model_copy(update={"nutrition": current.nutrition})
+        return plan
+
+    def _keep_first_day(self, plan: TrainingPlan) -> TrainingPlan:
+        """An update of a "start today" plan that keeps the same start_date
+        but forgets "first_day" would turn week 1's early days into misses."""
+        current = self.store.get_plan()
+        if (plan.first_day is None and current and current.first_day
+                and current.start_date == plan.start_date):
+            return plan.model_copy(update={"first_day": current.first_day})
         return plan
 
     def _turn(self, key: str, mode: str, text: str, metrics: dict | None,

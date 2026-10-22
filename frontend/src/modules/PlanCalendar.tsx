@@ -1,7 +1,7 @@
 import { Fragment } from "react";
 import type { PlannedSession, TrainingPlan } from "../lib/types";
 import { DAYS } from "../lib/types";
-import { addDays, fmtDate, fmtMin, typeLabel } from "../lib/format";
+import { addDays, fmtDate, fmtMin, planBegins, typeLabel } from "../lib/format";
 import { dayKey } from "../lib/planDiff";
 import { exercisesFor } from "../lib/exercises";
 
@@ -20,6 +20,7 @@ export const sessionOn = (plan: TrainingPlan, d: DaySel): PlannedSession | undef
 
 /** The whole plan as a calendar: one row per week. Click a day to open it right under its week. */
 export function PlanCalendar({ plan, changed, today, selected, onSelect }: Props) {
+  const begins = planBegins(plan);
   return (
     <div className="cal" role="grid" aria-label="Plan calendar">
       <div className="cal-corner" />
@@ -33,6 +34,11 @@ export function PlanCalendar({ plan, changed, today, selected, onSelect }: Props
             <div className="cal-week" title={w.focus}>W{w.week_number}</div>
             {DAYS.map((day, i) => {
               const date = addDays(start, i);
+              if (date < begins) {
+                return <div key={day} className="cal-day is-before" role="gridcell" aria-label={`${day} ${fmtDate(date)}: before your plan starts`}>
+                  <span className="cal-date">{Number(date.slice(8)) === 1 || i === 0 ? fmtDate(date) : Number(date.slice(8))}</span>
+                </div>;
+              }
               const s = w.sessions.find((x) => x.day === day && x.type !== "rest");
               const key = dayKey(w.week_number, day);
               const isSel = selected?.week === w.week_number && selected.day === day;
@@ -43,7 +49,7 @@ export function PlanCalendar({ plan, changed, today, selected, onSelect }: Props
                 <button key={day} type="button" className={cls} role="gridcell" aria-expanded={isSel}
                         aria-label={`${day} ${fmtDate(date)}: ${s ? `${s.title}, ${fmtMin(s.duration_min)}` : "rest"}`}
                         onClick={() => onSelect(isSel ? null : { week: w.week_number, day })}>
-                  <span className="cal-date">{n === 1 || (w.week_number === 1 && i === 0) ? fmtDate(date) : n}</span>
+                  <span className="cal-date">{n === 1 || date === begins || (w.week_number === 1 && i === 0) ? fmtDate(date) : n}</span>
                   {s ? (
                     <>
                       <span className="cal-title">{s.title || typeLabel[s.type]}</span>

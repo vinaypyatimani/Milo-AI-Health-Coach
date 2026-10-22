@@ -196,6 +196,7 @@ button.plan-week-cell:hover { background: var(--surface-2); }
 .cal-day.t-mobility::before, .cal-day.t-walk::before { background: var(--planned); }
 .cal-day.t-cycling::before, .cal-day.t-swim::before, .cal-day.t-other::before { background: var(--warn); }
 .cal-day.is-rest { background: var(--surface-2); border-color: transparent; }
+.cal-day.is-before { cursor: default; border-style: dashed; border-color: var(--line); background: none; }
 .cal-day.is-past { opacity: 0.55; }
 .cal-day.is-today { border-color: var(--ink); }
 .cal-day.is-selected { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); opacity: 1; }

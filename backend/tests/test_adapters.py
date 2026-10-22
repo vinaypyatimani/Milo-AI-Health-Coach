@@ -54,3 +54,17 @@ def test_broken_gpx(tmp_path):
     f.write_text("<gpx><trk>")
     with pytest.raises(AdapterError):
         parse_file(f)
+
+
+def test_tcx_gym_session_saved_as_other_is_strength(tmp_path):
+    """TCX has no strength sport, so watches write Sport="Other"; the notes tell us."""
+    from milo.adapters import parse_file
+
+    f = tmp_path / "gym.tcx"
+    f.write_text(
+        '<TrainingCenterDatabase xmlns="http://www.garmin.com/xmlschemas/TrainingCenterDatabase/v2">'
+        '<Activities><Activity Sport="Other"><Id>2026-10-26T17:30:00Z</Id>'
+        '<Lap StartTime="2026-10-26T17:30:00Z"><TotalTimeSeconds>3000</TotalTimeSeconds></Lap>'
+        "<Notes>Strength training: upper body</Notes></Activity></Activities></TrainingCenterDatabase>")
+    a = parse_file(f).activities[0]
+    assert a.type == "strength" and round(a.duration_min) == 50

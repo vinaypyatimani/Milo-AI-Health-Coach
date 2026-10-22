@@ -1,7 +1,7 @@
 import { api } from "../lib/api";
 import { useQuery } from "../lib/query";
 import type { PlanResponse } from "../lib/types";
-import { addDays, fmtDate, fmtMin, fmtNum, fmtRange, weekStart } from "../lib/format";
+import { addDays, fmtDate, fmtMin, fmtNum, fmtRange, planBegins, weekStart } from "../lib/format";
 import { Card, Skeleton } from "../components/ui";
 import { VolumeChart } from "../modules/VolumeChart";
 
@@ -13,7 +13,8 @@ export default function ProgressPage({ plan }: { plan: PlanResponse }) {
   // Workouts logged before the plan starts (or after it ends) can't be compared with it.
   const { data: acts } = useQuery("activities", api.activities);
   const end = addDays(p.start_date, p.weeks.length * 7 - 1);
-  const outside = (acts ?? []).filter((a) => a.start_time.slice(0, 10) < p.start_date || a.start_time.slice(0, 10) > end).length;
+  const begins = planBegins(p);
+  const outside = (acts ?? []).filter((a) => a.start_time.slice(0, 10) < begins || a.start_time.slice(0, 10) > end).length;
 
   return (
     <div className="page">
@@ -27,7 +28,7 @@ export default function ProgressPage({ plan }: { plan: PlanResponse }) {
       {error && <p className="tone-urgent">{error.message}</p>}
       {outside > 0 && (
         <p className="muted small" style={{ marginBottom: 16 }}>
-          {outside} workout{outside === 1 ? " is" : "s are"} outside your plan dates ({fmtDate(p.start_date)} – {fmtDate(end)}), so {outside === 1 ? "it isn't" : "they aren't"} counted here. You can see {outside === 1 ? "it" : "them"} on the Data page.
+          {outside} workout{outside === 1 ? " is" : "s are"} outside your plan dates ({fmtDate(begins)} – {fmtDate(end)}), so {outside === 1 ? "it isn't" : "they aren't"} counted here. You can see {outside === 1 ? "it" : "them"} on the Data page.
         </p>
       )}
       <div className="modules">

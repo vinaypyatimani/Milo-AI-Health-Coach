@@ -32,7 +32,7 @@ def test_full_flow(client, fake_llm, plan_json, sample_files):
     assert [m["role"] for m in conv] == ["assistant", "user", "assistant"]  # trigger hidden
 
     # Upload tracker files
-    files = [("files", (f.name, f.read_bytes())) for f in sorted(sample_files.iterdir())
+    files = [("files", (f.name, f.read_bytes())) for f in sorted(sample_files.iterdir()) if f.is_file()
              if f.suffix != ".json"]
     up = client.post("/api/activities/upload", files=files).json()
     assert all(f["ok"] for f in up["files"])

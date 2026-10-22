@@ -122,8 +122,9 @@ def compute_week_metrics(plan: TrainingPlan, week_number: int,
 
     start = plan.week_start(week_number)
     end = start + timedelta(days=6)
-    week_acts = [a for a in activities if start <= a.day <= end]
-    planned = [s for s in week.sessions if s.type != "rest"]
+    first = max(start, plan.begins)  # "start today": earlier days of week 1 don't count
+    week_acts = [a for a in activities if first <= a.day <= end]
+    planned = [s for s in week.sessions if s.type != "rest" and plan.is_active(week_number, s.day)]
 
     matches, extras = _match(plan, week_number, planned, week_acts)
 
@@ -208,11 +209,11 @@ def progress_overview(plan: TrainingPlan, activities: list[Activity],
     out = []
     for w in plan.weeks:
         start = plan.week_start(w.week_number)
-        logged = any(start <= a.start_time.date() <= start + timedelta(days=6) for a in activities)
+        logged = any(max(start, plan.begins) <= a.start_time.date() <= start + timedelta(days=6) for a in activities)
         # A future week still counts once workouts are logged for it (e.g. when
         # the server's clock is pinned with MILO_TODAY or the user logs ahead).
         if start > today and not logged:
-            planned = [s for s in w.sessions if s.type != "rest"]
+            planned = [s for s in w.sessions if s.type != "rest" and plan.is_active(w.week_number, s.day)]
             out.append({"week_number": w.week_number, "status": "upcoming",
                         "planned_duration_min": sum(s.duration_min for s in planned),
                         "actual_duration_min": None, "completion_rate_pct": None,

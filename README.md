@@ -37,7 +37,7 @@ milo-coach/
 │   │   └── prompts/            coach_system.md, judge.md
 │   ├── evaluation/             scenarios, LLM-as-a-judge, hallucinated-number check
 │   ├── scripts/                sample data generator, demo seeding
-│   └── tests/                  50 tests, run without an API key
+│   └── tests/                  55 tests, run without an API key
 ├── frontend/
 │   └── src/
 │       ├── App.tsx             shell: top bar, pages, start over
@@ -47,6 +47,7 @@ milo-coach/
 │       ├── lib/                API client, streaming (SSE), data cache, routing, plan diff
 │       └── styles/             design tokens, shell, modules, chat
 ├── sample_data/                synthetic tracker files (no real health data)
+│   └── test_sets/              8+ weeks for 3 people (gym, 10K, marathon) + generator
 └── Dockerfile                  single container: API + frontend
 ```
 

@@ -49,7 +49,7 @@ def plan_to_xlsx(plan: TrainingPlan, profile: UserProfile | None = None) -> byte
 
     ws.append([plan.goal])
     ws["A1"].font = Font(bold=True, size=14)
-    ws.append([f"Starts {plan.start_date.isoformat()}" + (f" · {profile.name}" if profile and profile.name else "")])
+    ws.append([f"Starts {plan.begins.isoformat()}" + (f" · {profile.name}" if profile and profile.name else "")])
     ws.append([])
     headers = ["Week", "Day", "Date", "Session", "Type", "Planned (min)", "Distance (km)",
                "Target", "Notes", "Done?", "Actual (min)", "How it felt"]
@@ -60,10 +60,10 @@ def plan_to_xlsx(plan: TrainingPlan, profile: UserProfile | None = None) -> byte
         cell.alignment = Alignment(vertical="center")
 
     for w, day, date, s in _sessions(plan):
-        rest = s is None or s.type == "rest"
+        rest = s is None or s.type == "rest" or date < plan.begins
         ws.append([
             w.week_number, day, date,
-            "Rest" if rest else s.title, "" if rest else s.type,
+            ("Before start" if date < plan.begins else "Rest") if rest else s.title, "" if rest else s.type,
             None if rest else s.duration_min, None if rest or s.distance_km is None else s.distance_km,
             "" if rest else _target(s), "" if rest else _notes(s),
             "" if rest else None, None, None,
@@ -156,7 +156,7 @@ def plan_to_pdf(plan: TrainingPlan, profile: UserProfile | None = None) -> bytes
         return Paragraph(safe, style)
 
     story = [P(plan.goal, h1),
-             P(f"{len(plan.weeks)} weeks from {plan.start_date.strftime('%d %b %Y')}"
+             P(f"{len(plan.weeks)} weeks from {plan.begins.strftime('%d %b %Y')}"
                + (f" · {profile.name}" if profile and profile.name else "") + " · made with Milo", small)]
 
     for w in plan.weeks:
@@ -166,8 +166,9 @@ def plan_to_pdf(plan: TrainingPlan, profile: UserProfile | None = None) -> bytes
         for day in DAYS:
             s = by_day.get(day)
             d = plan.session_date(w.week_number, day).strftime("%d %b")
-            if s is None or s.type == "rest":
-                rows.append([P(day), P(d), P("Rest", small), "", "", "", "", ""])
+            if s is None or s.type == "rest" or plan.session_date(w.week_number, day) < plan.begins:
+                label = "Before start" if plan.session_date(w.week_number, day) < plan.begins else "Rest"
+                rows.append([P(day), P(d), P(label, small), "", "", "", "", ""])
             else:
                 rows.append([P(day), P(d), P(s.title), P(f"{s.duration_min:g} min"),
                              P(f"{s.distance_km:g} km" if s.distance_km else ""), P(_target(s)), P(_notes(s)), "[  ]"])

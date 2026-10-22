@@ -22,6 +22,7 @@ function suggestionsFor(messages: ChatMessage[]): string[] {
   const last = messages[messages.length - 1];
   if (!last || last.role !== "assistant" || !last.content.trim().endsWith("?")) return [];
   const tail = last.content.slice(-240).toLowerCase();
+  if (tail.includes("start today") && tail.includes("monday")) return ["Start today", "Start next Monday"];
   if (tail.includes("nutrition")) return ["Yes, add a nutrition plan", "No thanks"];
   if (/update (the|your) plan|change (the|your) plan|apply these/.test(tail)) return ["Yes, update my plan", "Let's change something first"];
   return [];

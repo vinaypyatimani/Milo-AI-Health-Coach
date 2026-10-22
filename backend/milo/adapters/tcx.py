@@ -55,9 +55,16 @@ def parse(path: Path) -> ImportResult:
             result.warnings.append(f"Skipped an activity in {path.name} without a start time.")
             continue
         bpms = [s.bpm for s in samples]
+        kind = normalize_type(act.get("Sport", ""))
+        if kind == "other":
+            # TCX only knows Running, Biking and Other, so devices save gym
+            # workouts as "Other"; the activity's notes often say what it was.
+            notes = _find(act, "Notes")
+            if notes is not None and notes.text:
+                kind = normalize_type(notes.text)
         result.activities.append(Activity(
             source="tcx",
-            type=normalize_type(act.get("Sport", "")),
+            type=kind,
             start_time=to_local(_time(start_text)),
             duration_min=duration_s / 60,
             distance_km=distance_m / 1000 if distance_m else None,

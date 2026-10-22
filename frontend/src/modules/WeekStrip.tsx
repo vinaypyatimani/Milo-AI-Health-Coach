@@ -1,6 +1,6 @@
 import type { TrainingPlan, WeekMetrics } from "../lib/types";
 import { DAYS } from "../lib/types";
-import { addDays, fmtMin, shortDay, weekStart } from "../lib/format";
+import { addDays, fmtMin, planBegins, shortDay, weekStart } from "../lib/format";
 import { dayKey } from "../lib/planDiff";
 
 interface Props { plan: TrainingPlan; week: number; metrics?: WeekMetrics | null; changed: Set<string> }
@@ -17,7 +17,8 @@ export function WeekStrip({ plan, week, metrics, changed }: Props) {
 
   const cols = DAYS.map((day, i) => {
     const date = addDays(start, i);
-    const planned = pw.sessions.find((s) => s.day === day && s.type !== "rest");
+    // "Start today" plans: week 1 days before the first day show nothing planned.
+    const planned = date < planBegins(plan) ? undefined : pw.sessions.find((s) => s.day === day && s.type !== "rest");
     const row = metrics?.sessions.find((r) => r.planned_day === day);
     const actual = (metrics?.sessions ?? [])
       .filter((r) => r.actual_date === date)

@@ -9,7 +9,7 @@ from __future__ import annotations
 from datetime import date, datetime, timedelta
 from typing import Literal, Optional
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
 
@@ -84,12 +84,30 @@ class TrainingPlan(BaseModel):
     start_date: date
     weeks: list[PlanWeek]
     nutrition: Optional[NutritionPlan] = None
+    # "Start today" in the middle of a week: weeks still run Monday-Sunday, and
+    # week 1's days before first_day don't count (not planned, not missed).
+    first_day: Optional[date] = None
 
     @field_validator("start_date")
     @classmethod
     def _monday(cls, v: date) -> date:
         # Plans always start on a Monday so "week N, day X" maps to one date.
         return v - timedelta(days=v.weekday())
+
+    @model_validator(mode="after")
+    def _first_day_in_week_one(self) -> "TrainingPlan":
+        fd = self.first_day
+        if fd is not None and not (self.start_date < fd <= self.start_date + timedelta(days=6)):
+            self.first_day = None  # a Monday start (or a nonsense date) needs no first_day
+        return self
+
+    @property
+    def begins(self) -> date:
+        """The first day that counts: first_day, or the Monday the plan starts."""
+        return self.first_day or self.start_date
+
+    def is_active(self, week_number: int, day: str) -> bool:
+        return self.session_date(week_number, day) >= self.begins
 
     def week(self, week_number: int) -> Optional[PlanWeek]:
         return next((w for w in self.weeks if w.week_number == week_number), None)

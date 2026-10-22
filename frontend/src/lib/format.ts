@@ -39,6 +39,11 @@ export const typeLabel: Record<string, string> = {
   mobility: "Mobility", rest: "Rest", other: "Other",
 };
 
+/** The first day of the plan that counts (a mid-week start, or the first Monday). */
+export function planBegins(p: { start_date: string; first_day?: string | null }): string {
+  return p.first_day ?? p.start_date;
+}
+
 export function weekStart(planStart: string, week: number): string {
   return addDays(planStart, (week - 1) * 7);
 }
