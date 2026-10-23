@@ -111,3 +111,33 @@ def test_start_over_keeps_or_clears_plan(client, fake_llm, plan_json):
     assert client.get("/api/coaching").json() == []
     assert client.get("/api/profile").json()["name"] == "Alex"
     assert client.delete("/api/conversations/checkin").status_code == 400
+
+
+def test_compact_plan_is_accepted_and_sent_compact(client, fake_llm, plan_json):
+    """Plans are written compactly (no rest days, no empty fields) so they generate faster."""
+    from openpyxl import load_workbook
+
+    from milo.coach import compact_plan
+    from milo.schemas import TrainingPlan
+
+    compact = json.loads(compact_plan(TrainingPlan.model_validate(plan_json)))
+    assert all(s["type"] != "rest" for w in compact["weeks"] for s in w["sessions"])
+    assert "distance_km\":null" not in compact_plan(TrainingPlan.model_validate(plan_json))
+    assert len(compact_plan(TrainingPlan.model_validate(plan_json))) < len(json.dumps(plan_json, indent=2)) * 0.5
+
+    # a compact plan from the model is a complete plan for the app
+    fake_llm.replies = [f"Here it is.\n```json\n{json.dumps(compact)}\n```"]
+    assert client.post("/api/coaching/message", json={"text": "plan"}).json()["plan_saved"]
+    saved = client.get("/api/plan").json()["plan"]
+    strength = next(x for x in saved["weeks"][0]["sessions"] if x["type"] == "strength")
+    assert strength["distance_km"] is None and strength["target_intensity"]["kind"] in ("rpe", "none")   # defaults filled in
+    ws = load_workbook(io.BytesIO(client.get("/api/plan/export.xlsx").content))["Plan"]
+    assert sum(1 for r in ws.iter_rows(min_row=5) if r[1].value) == 7 * len(compact["weeks"])   # rest days back
+    m = client.get("/api/weeks/1/metrics").json()["summary"]
+    assert m["planned_sessions"] == len(compact["weeks"][0]["sessions"])
+
+    # the model gets the compact plan as CURRENT_PLAN
+    fake_llm.replies = ["Sure."]
+    client.post("/api/coaching/message", json={"text": "anything"})
+    system = fake_llm.calls[-1][0]["content"]
+    assert '"type":"rest"' not in system and '"distance_km":null' not in system

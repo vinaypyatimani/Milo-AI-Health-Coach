@@ -15,9 +15,12 @@ interface Props {
 }
 
 /** While a plan is being written, show the prose and hide the raw JSON. */
-function visibleText(text: string): { text: string; writingPlan: boolean } {
+function visibleText(text: string): { text: string; writingPlan: boolean; week: number } {
   const i = text.indexOf("```");
-  return i < 0 ? { text, writingPlan: false } : { text: text.slice(0, i).trimEnd(), writingPlan: true };
+  if (i < 0) return { text, writingPlan: false, week: 0 };
+  // Show progress while the plan is written: count the weeks started so far.
+  const week = (text.slice(i).match(/"week_number"\s*:/g) ?? []).length;
+  return { text: text.slice(0, i).trimEnd(), writingPlan: true, week };
 }
 
 /**
@@ -75,7 +78,7 @@ export function MessageList({ messages, streaming, status, urgent, error, savedL
             <div className="bubble is-streaming">
               {live.text ? <Markdown text={live.text} /> : <div className="typing" aria-label="Milo is thinking"><span /><span /><span /></div>}
               {live.text && !live.writingPlan && <span className="caret" aria-hidden="true" />}
-              {(live.writingPlan || status) && <div className="writing-note"><span className="spinner" />{status ?? "Writing your plan…"}</div>}
+              {(live.writingPlan || status) && <div className="writing-note"><span className="spinner" />{status ?? (live.week ? `Writing your plan… week ${live.week}` : "Writing your plan…")}</div>}
             </div>
           </div>
         )}

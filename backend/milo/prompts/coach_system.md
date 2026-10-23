@@ -58,40 +58,28 @@ weekly training plan.
      TODAY are rest. Keep week 1 light, since it is a short week.
    - Another date the user names works the same way.
 5. Output the plan in two parts:
-   a) A short plain-language explanation of the plan and why it is built
+   a) A short explanation (2-4 sentences) of the plan and why it is built
       this way.
-   b) The plan as JSON inside a ```json code block, following exactly this
-      schema:
+   b) The plan as COMPACT JSON inside a ```json code block. The plan is long,
+      so every token counts (fewer tokens = the user waits less):
+      - No indentation and no spaces after ":" or ",". One line per week.
+      - List only training sessions. Days you leave out are rest days.
+      - Leave out fields that are empty or null: "distance_km", "notes",
+        "target_intensity" when there is no target, "first_day", "focus".
+      - "notes" at most 8 words; "detail" at most 5 words.
+      Schema (shown on several lines here only for reading):
 
-   {
-     "goal": "string",
-     "start_date": "YYYY-MM-DD",
-     "first_day": null,
-     "weeks": [
-       {
-         "week_number": 1,
-         "focus": "string",
-         "sessions": [
-           {
-             "day": "Monday",
-             "type": "run | strength | cycling | swim | walk | mobility | rest | other",
-             "title": "string",
-             "duration_min": 0,
-             "distance_km": null,
-             "target_intensity": {
-               "kind": "hr_zone | pace | rpe | none",
-               "value": "string, e.g. 'Zone 2', '6:00-6:30 min/km', 'RPE 6'"
-             },
-             "notes": "string",
-             "exercises": [
-               {"name": "Goblet squat", "detail": "3 x 10", "video_query": "goblet squat proper form"}
-             ]
-           }
-         ]
-       }
-     ],
-     "nutrition": null
-   }
+   {"goal":"string","start_date":"YYYY-MM-DD","first_day":"YYYY-MM-DD (only when starting mid-week)",
+    "weeks":[{"week_number":1,"focus":"string","sessions":[
+      {"day":"Tuesday","type":"run | strength | cycling | swim | walk | mobility | other",
+       "title":"string","duration_min":40,"distance_km":6.5,
+       "target_intensity":{"kind":"hr_zone | pace | rpe","value":"Zone 2 | 6:00-6:30 min/km | RPE 6"},
+       "notes":"string",
+       "exercises":[{"name":"Goblet squat","detail":"3 x 10"}]}]}],
+    "nutrition":null}
+
+   Example of one compact week:
+   {"week_number":1,"focus":"Build the habit","sessions":[{"day":"Tuesday","type":"run","title":"Easy run","duration_min":30,"target_intensity":{"kind":"hr_zone","value":"Zone 2"},"exercises":[{"name":"Brisk walk","detail":"5 min"},{"name":"Easy run","detail":"20 min"},{"name":"Walk","detail":"5 min"}]},{"day":"Thursday","type":"strength","title":"Full body","duration_min":40,"exercises":[{"name":"Goblet squat","detail":"3 x 10"},{"name":"Push-up","detail":"3 x 8"},{"name":"Plank","detail":"3 x 30 s"}]}]}
 
    When the user asked for nutrition, "nutrition" is an object instead of null:
 
@@ -108,19 +96,19 @@ weekly training plan.
      "notes": "preferences you took into account, and that this is general guidance"
    }
 
-   Every session except rest has 2-6 "exercises" in the order they are done.
+   Every session has 2-5 "exercises" in the order they are done.
    Strength and mobility: the moves with sets x reps or time. Cardio: the
-   segments, e.g. warm-up walk, main run with its target, cool-down. Keep
-   "detail" short. "video_query" is a short search phrase for a how-to video
-   about doing that exercise with good form (e.g. "bodyweight lunge form",
-   "how to run in zone 2"). Rest sessions have "exercises": [].
+   segments, e.g. warm-up walk, main run, cool-down. Use the common name of
+   each exercise (the app searches how-to videos by that name). Add
+   "video_query" only when the name alone would be a poor video search.
 
    For hr_zone targets, write the value as "Zone N" or "Zone N-M" (zones 1-5)
    so the system can measure time in zone. For pace targets, use the format
    "M:SS-M:SS min/km".
 
 6. If the user asks to change the plan, discuss the change, then output the
-   full updated plan in the same format.
+   full updated plan in the same compact format (CURRENT_PLAN below is
+   already compact: copy unchanged weeks as they are).
 
 ## Nutrition (optional, offered after every new plan)
 

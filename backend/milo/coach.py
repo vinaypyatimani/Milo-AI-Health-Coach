@@ -51,6 +51,19 @@ def _json(obj) -> str:
     return json.dumps(obj, separators=(",", ":"), default=str)
 
 
+def compact_plan(plan: TrainingPlan | None) -> str:
+    """The plan as the model should write it: no rest days, no empty fields,
+    no whitespace. An 8-week plan is about 3x shorter than pretty JSON, which
+    makes both reading it (input) and writing an update (output) faster."""
+    if plan is None:
+        return "null"
+    data = plan.model_dump(mode="json", exclude_none=True, exclude_defaults=True)
+    data["start_date"] = plan.start_date.isoformat()   # always keep the dates
+    for w in data.get("weeks", []):
+        w["sessions"] = [s for s in w.get("sessions", []) if s.get("type") != "rest"]
+    return json.dumps(data, separators=(",", ":"), ensure_ascii=False)
+
+
 class Coach:
     def __init__(self, store: Storage):
         self.store = store
@@ -67,7 +80,7 @@ class Coach:
             mode=mode,
             today=f"{today().isoformat()} ({today().strftime('%A')})",
             user_profile_json=_json(self.store.get_profile()),
-            plan_json=_json(self.store.get_plan()),
+            plan_json=compact_plan(self.store.get_plan()),
             weekly_metrics_json=_json(metrics),
         )
 
@@ -120,7 +133,7 @@ class Coach:
             plan, error = parse_plan(fixed)
             plan_source = fixed
             if plan:
-                raw = strip_plan_block(raw) + "\n\n```json\n" + plan.model_dump_json(indent=2) + "\n```"
+                raw = strip_plan_block(raw) + "\n\n```json\n" + compact_plan(plan) + "\n```"
 
         plan_saved = False
         if plan and not urgent:

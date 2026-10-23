@@ -37,7 +37,7 @@ milo-coach/
 │   │   └── prompts/            coach_system.md, judge.md
 │   ├── evaluation/             scenarios, LLM-as-a-judge, hallucinated-number check
 │   ├── scripts/                sample data generator, demo seeding
-│   └── tests/                  69 tests, run without an API key
+│   └── tests/                  70 tests, run without an API key
 ├── frontend/
 │   └── src/
 │       ├── App.tsx             shell: top bar, pages, start over
@@ -64,7 +64,9 @@ milo-coach/
 ## Speed
 
 - **Streaming replies:** Milo's answer appears word by word as the model writes it (`/api/chat/stream`), instead of after the whole reply is finished.
-- **Compact prompts:** plan and metrics are sent to the model as compact JSON, which means fewer tokens and faster replies.
+- **Compact plans:** the model writes plans as compact JSON: no indentation, no rest days (days left out are rest), no empty fields, short notes. An 8-week plan is about 3,200 output tokens instead of about 10,800, so it generates roughly 3x faster. The app fills in the rest when it reads the plan, and sends the current plan back to the model in the same compact form.
+- **Visible progress:** while the plan is written, the chat shows which week Milo is on.
+- **Compact prompts:** metrics are sent to the model as compact JSON, which means fewer tokens and faster replies.
 - **Warm start:** LiteLLM is loaded in the background when the server starts, so the first message doesn't wait for it.
 - **Data cache in the frontend:** pages show cached data instantly and refresh in the background; less-used pages load on demand.
 - **Reasoning effort:** `MILO_REASONING_EFFORT=none` makes GPT-6 Luna answer faster, at some cost to plan quality (default: `low`).

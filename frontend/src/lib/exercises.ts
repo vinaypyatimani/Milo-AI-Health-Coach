@@ -17,9 +17,10 @@ export function exercisesFor(s: PlannedSession): Exercise[] {
   return [{ name: s.title || typeLabel[s.type], detail, video_query: "" }];
 }
 
-/** What to search for a how-to video, or null when a video wouldn't help (a cool-down walk). */
+/** What to search for a how-to video, or null when a video wouldn't help (warm-ups, cool-downs, walks). */
 export function videoQuery(e: Exercise, s: PlannedSession): string | null {
-  if (e.video_query.trim()) return e.video_query.trim();
+  if (e.video_query?.trim()) return e.video_query.trim();
   if (FORM_TYPES.has(s.type)) return `${e.name} proper form`;
-  return null;
+  if (/warm|cool|walk|jog|stretch/i.test(e.name)) return null;
+  return `${e.name} ${s.type === "run" ? "running" : s.type} technique`;
 }
