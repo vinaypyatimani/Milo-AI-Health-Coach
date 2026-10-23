@@ -315,3 +315,4 @@ button.plan-week-cell:hover { background: var(--surface-2); }
 .guides summary { cursor: pointer; font-weight: 500; font-size: 0.92rem; }
 .guides p { margin-top: 6px; color: var(--ink-2); }
 code { font-size: 0.85em; background: var(--surface-2); padding: 1px 5px; border-radius: 4px; }
+.confirm-page { border: 1px solid var(--line); border-radius: var(--r-md); margin: -4px 0 16px; }

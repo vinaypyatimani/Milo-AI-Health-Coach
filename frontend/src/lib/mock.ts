@@ -128,6 +128,7 @@ You're training steadily for a 10K: about **3.9 sessions and 173 minutes a week*
 Want a full plan built from this? Open the Plan page and choose *Build a plan with Milo*.`;
 
 const analysisConv: ChatMessage[] = [];
+let analysisCleared = false;   // demo: after Reset, Analyze shows its empty state
 
 function applyWeek2Changes() {
   if (!plan) return;
@@ -221,7 +222,7 @@ export const mockApi = {
   },
 
   activities: async () => activities,
-  upload: async (files: File[]): Promise<UploadReport> => {
+  upload: async (files: File[], _scope: "plan" | "analysis" = "plan"): Promise<UploadReport> => {
     await wait(900);
     return {
       supported: [".csv", ".fit", ".gpx", ".tcx", ".xml", ".zip"],
@@ -253,7 +254,12 @@ export const mockApi = {
     return { ok: true };
   },
   exportUrl: (fmt: "pdf" | "xlsx") => `#download-${fmt}`,
-  analysis: async (days: number): Promise<Analysis> => { await wait(150); return demoAnalysis[String(days)]; },
+  analysis: async (days: number): Promise<Analysis> => {
+    await wait(150);
+    return analysisCleared ? { ...demoAnalysis[String(days)], data: { ...demoAnalysis[String(days)].data, activities: 0, recovery_days: 0 }, flags: [] }
+      : demoAnalysis[String(days)];
+  },
+  resetAnalysis: async () => { await wait(200); analysisCleared = true; analysisConv.length = 0; return { ok: true }; },
   reportPdfUrl: () => "#report-pdf",
   connections: async (): Promise<Connections> => ({ polar: { available: false, connected: false, connected_at: null, last_sync: null, imported: 0 } }),
   polarConnectUrl: () => "#analyze",

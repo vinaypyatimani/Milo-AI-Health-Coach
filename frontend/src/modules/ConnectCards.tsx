@@ -3,7 +3,7 @@ import { api, isDemo } from "../lib/api";
 import { invalidate, useQuery } from "../lib/query";
 import { fmtDate } from "../lib/format";
 import { Banner, Card } from "../components/ui";
-import { dataChanged } from "./DataModules";
+import { analysisDataChanged } from "./DataModules";
 
 /** Connect a Polar account. The checkbox is the explicit permission Polar's licence asks for. */
 export function PolarCard({ notify }: { notify: (m: string) => void }) {
@@ -19,7 +19,7 @@ export function PolarCard({ notify }: { notify: (m: string) => void }) {
       const r = await api.polarSync();
       notify(`Polar: ${r.new_workouts} new workout${r.new_workouts === 1 ? "" : "s"}${r.recovery_days ? `, ${r.recovery_days} nights` : ""}`);
       if (r.warnings.length) setError(r.warnings.slice(0, 3).join(" "));
-      dataChanged(); invalidate("connect");
+      analysisDataChanged(); invalidate("connect");
     } catch (e) { setError((e as Error).message); } finally { setBusy(false); }
   };
   const disconnect = async () => {
@@ -47,7 +47,7 @@ export function PolarCard({ notify }: { notify: (m: string) => void }) {
         </p>
       ) : (
         <>
-          <p className="muted small">Imports your workouts, sleep and overnight heart rate from Polar Flow (last 30 days).</p>
+          <p className="muted small">Imports your workouts, sleep and overnight heart rate from Polar Flow (last 30 days) into Analyze.</p>
           <label className="consent">
             <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} />
             <span>I agree that Milo copies my Polar workouts and sleep data and sends them to the AI model to write my analysis. I can disconnect and delete them any time.</span>

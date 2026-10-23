@@ -154,6 +154,18 @@ def analysis(days: int = Query(56, ge=0, le=3650)):
     return coach.analysis(days or None)
 
 
+@app.delete("/api/analysis")
+def reset_analysis():
+    """Reset Analyze: its workouts, sleep data and report. The plan and its data stay;
+    a Polar connection stays too, and its next sync imports everything again."""
+    coach.reset_analysis()
+    conn = store.get_connection(polar.PROVIDER)
+    if conn:
+        conn["imported"] = []
+        store.save_connection(polar.PROVIDER, conn)
+    return {"ok": True}
+
+
 @app.get("/api/analysis/conversation")
 def analysis_conversation():
     return coach.analysis_conversation()
@@ -308,10 +320,13 @@ def chat_stream(body: ChatIn):
 
 
 # ---- tracker data ------------------------------------------------------------------------
+Scope = Literal["plan", "analysis"]   # plan = Data page (Week, Progress, check-ins); analysis = Analyze page
+
+
 @app.get("/api/activities")
-def list_activities():
+def list_activities(scope: Scope = "plan"):
     return [{"id": i, **a.model_dump(exclude={"hr_samples"}),
-             "hr_samples": len(a.hr_samples)} for i, a in store.get_activities()]
+             "hr_samples": len(a.hr_samples)} for i, a in store.get_activities(scope=scope)]
 
 
 def _remove_quietly(path: Path) -> None:
@@ -324,7 +339,7 @@ def _remove_quietly(path: Path) -> None:
 
 
 @app.post("/api/activities/upload")
-async def upload(files: list[UploadFile] = File(...)):
+async def upload(files: list[UploadFile] = File(...), scope: Scope = "plan"):
     report = []
     for f in files:
         suffix = Path(f.filename or "").suffix.lower()
@@ -335,8 +350,8 @@ async def upload(files: list[UploadFile] = File(...)):
             if tmp_path.stat().st_size > config.MAX_UPLOAD_MB * 1024 * 1024:
                 raise AdapterError(f"File is larger than {config.MAX_UPLOAD_MB} MB.")
             result = parse_file(tmp_path, f.filename)
-            added = store.add_activities(result.activities)
-            store.upsert_recovery(result.recovery)
+            added = store.add_activities(result.activities, scope=scope)
+            store.upsert_recovery(result.recovery, scope=scope)
             report.append({"file": f.filename, "ok": True, "activities_added": added,
                            "duplicates_skipped": len(result.activities) - added,
                            "recovery_days": len(result.recovery),

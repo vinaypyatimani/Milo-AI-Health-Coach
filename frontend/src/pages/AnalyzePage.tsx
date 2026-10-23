@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { api, isDemo } from "../lib/api";
-import { invalidate, useQuery } from "../lib/query";
+import { invalidate, setQueryData, useQuery } from "../lib/query";
 import { fmtDate, typeLabel } from "../lib/format";
 import { Banner, Card, Segmented, Skeleton } from "../components/ui";
 import { ChatPanel } from "../chat/ChatPanel";
 import { useConversation } from "../chat/useConversation";
-import { UploadCard, dataChanged } from "../modules/DataModules";
+import { UploadCard, analysisDataChanged } from "../modules/DataModules";
 import { OtherDevices, PolarCard } from "../modules/ConnectCards";
 import { Findings, StatTiles, WeeklyBars, ZoneBar } from "../modules/AnalysisCharts";
 
@@ -32,6 +32,20 @@ export default function AnalyzePage({ notify }: { notify: (m: string) => void })
   const conv = useConversation({ mode: "analysis", days }, () => {});
   const [polarError, setPolarError] = useState<string | null>(() => readReturn().error);
   const handled = useRef(false);
+  const [confirmReset, setConfirmReset] = useState(false);
+  const [resetting, setResetting] = useState(false);
+
+  /** Reset Analyze only: its workouts, sleep data and report. The plan and its data stay. */
+  const reset = async () => {
+    setResetting(true);
+    try {
+      await api.resetAnalysis();
+      setQueryData("conv:analysis", []);
+      conv.reset();
+      invalidate("analysis:", "connect");
+      notify("Analyze reset");
+    } finally { setResetting(false); setConfirmReset(false); }
+  };
 
   // Coming back from Polar's sign-in: import right away, then tidy the URL.
   useEffect(() => {
@@ -43,7 +57,7 @@ export default function AnalyzePage({ notify }: { notify: (m: string) => void })
     if (ret.connected) {
       notify("Polar connected, importing…");
       api.polarSync()
-        .then((r) => { notify(`Polar: ${r.new_workouts} workout${r.new_workouts === 1 ? "" : "s"} imported`); dataChanged(); invalidate("connect"); })
+        .then((r) => { notify(`Polar: ${r.new_workouts} workout${r.new_workouts === 1 ? "" : "s"} imported`); analysisDataChanged(); invalidate("connect"); })
         .catch((e: Error) => setPolarError(e.message));
     }
   }, [notify]);
@@ -53,7 +67,7 @@ export default function AnalyzePage({ notify }: { notify: (m: string) => void })
 
   const sources = (
     <div className="analyze-sources">
-      <UploadCard notify={notify} />
+      <UploadCard notify={notify} scope="analysis" />
       <PolarCard notify={notify} />
       <OtherDevices />
     </div>
@@ -67,7 +81,7 @@ export default function AnalyzePage({ notify }: { notify: (m: string) => void })
       <div className="page">
         <header className="page-head">
           <h1>Analyze your training</h1>
-          <p className="lede">Upload workouts from any watch or app, or connect Polar. Milo looks at volume, intensity, consistency and recovery, then writes a report with suggestions. No plan needed.</p>
+          <p className="lede">Upload workouts from any watch or app, or connect Polar. Milo looks at volume, intensity, consistency and recovery, then writes a report with suggestions. No plan needed, and this data stays separate from your plan.</p>
         </header>
         {error && <Banner tone="error">{error.message}</Banner>}
         {a && days !== 0 && <p className="muted small" style={{ marginBottom: 12 }}>No workouts found yet.</p>}
@@ -99,8 +113,18 @@ export default function AnalyzePage({ notify }: { notify: (m: string) => void })
               {a.data.days_since_last_workout ? ` · last workout ${a.data.days_since_last_workout} days ago` : ""}
             </p>
           </div>
-          <Segmented<number> label="Period" value={days} onChange={setDays} options={PERIODS} />
+          <div className="head-actions">
+            <Segmented<number> label="Period" value={days} onChange={setDays} options={PERIODS} />
+            {!confirmReset && <button className="btn btn-sm" type="button" onClick={() => setConfirmReset(true)}>Reset</button>}
+          </div>
         </header>
+        {confirmReset && (
+          <div className="confirm confirm-page" role="group" aria-label="Reset Analyze">
+            <span className="grow">Remove all workouts, sleep data and the report from Analyze? Your plan and its data stay.</span>
+            <button className="btn btn-sm btn-danger" type="button" disabled={resetting} onClick={reset}>{resetting ? "Resetting…" : "Reset Analyze"}</button>
+            <button className="link-btn" type="button" disabled={resetting} onClick={() => setConfirmReset(false)}>Cancel</button>
+          </div>
+        )}
         {hasReport && <p className="muted small period-note">Changed the period? Use <em>Start over</em> in the chat for a new report.</p>}
         {polarError && <Banner tone="error">Polar: {polarError}</Banner>}
 
@@ -141,7 +165,7 @@ export default function AnalyzePage({ notify }: { notify: (m: string) => void })
         </details>
 
         <Card className="section-card">
-          <p className="muted small">Every number here is calculated by the app from your files; Milo only explains them. Milo is a coach, not a doctor.</p>
+          <p className="muted small">Every number here is calculated by the app from the files you added on this page, separate from your plan’s data. Milo only explains them. Milo is a coach, not a doctor.</p>
         </Card>
       </div>
     </div>

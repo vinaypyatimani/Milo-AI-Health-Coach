@@ -37,7 +37,7 @@ milo-coach/
 │   │   └── prompts/            coach_system.md, judge.md
 │   ├── evaluation/             scenarios, LLM-as-a-judge, hallucinated-number check
 │   ├── scripts/                sample data generator, demo seeding
-│   └── tests/                  66 tests, run without an API key
+│   └── tests/                  69 tests, run without an API key
 ├── frontend/
 │   └── src/
 │       ├── App.tsx             shell: top bar, pages, start over
@@ -168,6 +168,7 @@ Interactive docs at `/docs`.
 | POST | `/api/chat/stream` with `mode: "analysis"` | Milo writes the report, then answers follow-up questions |
 | GET | `/api/analysis/report.pdf` | The latest report as a PDF |
 | GET / POST / DELETE | `/api/connect`, `/api/connect/polar/start · /callback · /sync` | Connect Polar, import, disconnect |
+| DELETE | `/api/analysis` | Reset Analyze (its data and report; the plan's data stays) |
 | DELETE | `/api/data` | Delete everything (GDPR) |
 
 ---
@@ -205,6 +206,13 @@ running economy, sleep, resting HR and HRV, plus rule-based findings.
 Milo only explains those numbers and suggests what to do next (the same
 "the model never calculates" rule as the check-in). Follow-up questions
 reuse the numbers the report was written from.
+
+**Separate data.** Analyze has its own workouts and sleep data (`scope`
+"analysis"); the Data page's data (`scope` "plan") is what Week, Progress
+and check-ins use. So someone can analyze last season's marathon block
+while following a new weight-loss plan, and neither mixes into the other.
+**Reset** on the Analyze page removes only its data and report. Databases
+from older versions are upgraded on start; their data belongs to the plan.
 
 **Connecting devices.** Only Polar connects directly, for good reasons:
 Strava's API policy (June 2026) forbids putting Strava data into an AI

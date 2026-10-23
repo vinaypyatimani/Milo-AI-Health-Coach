@@ -57,10 +57,11 @@ export const realApi = {
   weekMetrics: (week: number) => request<WeekMetrics>(`/api/weeks/${week}/metrics`),
 
   activities: () => request<ActivityItem[]>("/api/activities"),
-  upload: (files: File[]) => {
+  /** scope "plan" = the Data page (counts for the plan); "analysis" = the Analyze page (kept apart). */
+  upload: (files: File[], scope: "plan" | "analysis" = "plan") => {
     const form = new FormData();
     files.forEach((f) => form.append("files", f));
-    return request<UploadReport>("/api/activities/upload", { method: "POST", body: form });
+    return request<UploadReport>(`/api/activities/upload?scope=${scope}`, { method: "POST", body: form });
   },
   addManual: (a: ManualActivity) =>
     request<{ ok: boolean }>("/api/activities/manual", { method: "POST", body: json(a) }),
@@ -77,6 +78,8 @@ export const realApi = {
 
   /** Analyze page: the numbers (no AI), the report PDF, and device connections. */
   analysis: (days: number) => request<Analysis>(`/api/analysis?days=${days}`),
+  /** Reset Analyze: its workouts, sleep data and report. The plan and its data stay. */
+  resetAnalysis: () => request<{ ok: boolean }>("/api/analysis", { method: "DELETE" }),
   reportPdfUrl: () => `${BASE}/api/analysis/report.pdf`,
   connections: () => request<Connections>("/api/connect"),
   polarConnectUrl: () => `${BASE}/api/connect/polar/start?consent=yes`,

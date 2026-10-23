@@ -214,9 +214,14 @@ class Coach:
     # ---- Analyze mode -----------------------------------------------------------
     def analysis(self, days: int | None = ANALYSIS_DEFAULT_DAYS) -> dict:
         """Report numbers from all tracker data; days=None means everything."""
-        acts = [a for _, a in self.store.get_activities()]
-        rec = self.store.get_recovery(date(1970, 1, 1), date(2999, 12, 31))
+        acts = [a for _, a in self.store.get_activities(scope="analysis")]
+        rec = self.store.get_recovery(date(1970, 1, 1), date(2999, 12, 31), scope="analysis")
         return analyze(acts, rec, self.store.get_profile(), days, today())
+
+    def reset_analysis(self) -> None:
+        """Analyze's Reset: its workouts, sleep data and report. The plan's data stays."""
+        self.store.delete_scope("analysis")
+        self.store.delete_conversation("analysis")
 
     def _analysis_stream(self, text: str | None, days: int | None) -> Iterator[dict]:
         """A new report (text=None) computes the numbers once and stores them with

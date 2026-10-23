@@ -97,10 +97,12 @@ def events(response):
             for b in response.text.strip().split("\n\n") if b.strip()]
 
 
-def upload(client, sample_files):
+def upload(client, sample_files, scope="analysis"):
     files = [("files", (f.name, f.read_bytes())) for f in sorted(sample_files.iterdir())
              if f.is_file() and f.suffix not in (".json", ".md")]
-    assert all(f["ok"] for f in client.post("/api/activities/upload", files=files).json()["files"])
+    r = client.post(f"/api/activities/upload?scope={scope}", files=files).json()
+    assert all(f["ok"] for f in r["files"])
+    return r
 
 
 def test_analysis_needs_data(client):
@@ -197,7 +199,8 @@ def test_polar_connect_sync_disconnect(client, polar_setup):
     assert rep["new_workouts"] == 1 and rep["recovery_days"] == 1
     assert client.post("/api/connect/polar/sync").json()["new_workouts"] == 0    # remembered
     import main
-    day = main.store.get_recovery(date(2026, 10, 17), date(2026, 10, 17))[0]
+    day = main.store.get_recovery(date(2026, 10, 17), date(2026, 10, 17), scope="analysis")[0]
+    assert main.store.get_recovery(date(2026, 10, 17), date(2026, 10, 17)) == []   # not in the plan's data
     assert (day.sleep_hours, day.resting_hr, day.hrv_ms) == (7.25, 51, 68)
 
     client.delete("/api/connect/polar")
@@ -221,3 +224,73 @@ def test_one_hard_week_is_flagged():
                 UserProfile(name="A", max_hr=190), None, TODAY)
     flag = next(f for f in r["flags"] if f["code"] == "hard_week")
     assert "2026-09-28" in flag["text"] and r["weekly"][4]["easy_pct"] == 0
+
+
+# ---- plan data and Analyze data are separate ------------------------------------------------
+def test_analyze_and_plan_data_are_separate(client, fake_llm, sample_files, plan_json):
+    """Someone can analyze marathon training while following a weight-loss plan:
+    the Week page shows only the plan's workouts, Analyze only its own."""
+    fake_llm.replies = [f"Plan.\n```json\n{json.dumps(plan_json)}\n```"]
+    client.post("/api/coaching/message", json={"text": "plan"})
+    upload(client, sample_files, scope="analysis")
+    assert client.get("/api/activities").json() == []                       # Data page: nothing
+    assert client.get("/api/weeks/1/metrics").json()["summary"]["actual_duration_min"] == 0
+    assert all(w["actual_duration_min"] in (0, None) for w in client.get("/api/progress").json())
+    assert client.get("/api/analysis?days=0").json()["data"]["activities"] == 4
+
+    # the same files on the Data page count for the plan (not duplicates of Analyze's)
+    r = upload(client, sample_files, scope="plan")
+    assert sum(f["activities_added"] for f in r["files"]) == 4
+    assert client.get("/api/weeks/1/metrics").json()["summary"]["completion_rate_pct"] == 100
+    assert client.get("/api/analysis?days=0").json()["data"]["activities"] == 4    # unchanged
+    assert len(client.get("/api/activities?scope=analysis").json()) == 4
+
+
+def test_reset_analysis_keeps_the_plan(client, fake_llm, sample_files, plan_json, polar_setup):
+    fake_llm.replies = [f"Plan.\n```json\n{json.dumps(plan_json)}\n```"]
+    client.post("/api/coaching/message", json={"text": "plan"})
+    upload(client, sample_files, scope="plan")
+    upload(client, sample_files, scope="analysis")
+    fake_llm.replies = ["## Summary\nGood."]
+    client.post("/api/chat/stream", json={"mode": "analysis", "text": None})
+    r = client.get("/api/connect/polar/start?consent=yes", follow_redirects=False)
+    client.get(f"/api/connect/polar/callback?code=x&state={r.headers['location'].split('state=')[1]}")
+    client.post("/api/connect/polar/sync")
+
+    assert client.delete("/api/analysis").json()["ok"]
+    a = client.get("/api/analysis?days=0").json()
+    assert a["data"]["activities"] == 0 and a["data"]["recovery_days"] == 0
+    assert client.get("/api/analysis/conversation").json() == []
+    assert len(client.get("/api/activities").json()) == 4                    # plan data untouched
+    assert client.get("/api/plan").json()["plan"] is not None
+    assert client.get("/api/connect").json()["polar"]["connected"]           # still connected...
+    assert client.post("/api/connect/polar/sync").json()["new_workouts"] == 1   # ...and re-imports
+
+
+def test_old_database_is_upgraded(tmp_path):
+    """A database from before Analyze existed: its data becomes the plan's."""
+    import sqlite3
+
+    from milo.storage import Storage
+
+    db = tmp_path / "old.db"
+    con = sqlite3.connect(db)
+    con.executescript("""
+        CREATE TABLE activities (id INTEGER PRIMARY KEY AUTOINCREMENT, start_time TEXT NOT NULL,
+                                 data TEXT NOT NULL, fingerprint TEXT NOT NULL UNIQUE);
+        CREATE TABLE recovery (day TEXT PRIMARY KEY, data TEXT NOT NULL);
+    """)
+    a = act(date(2026, 10, 13))
+    con.execute("INSERT INTO activities (start_time, data, fingerprint) VALUES (?, ?, ?)",
+                (a.start_time.isoformat(), a.model_dump_json(), "run|2026-10-13T18:00|40"))
+    con.execute("INSERT INTO recovery VALUES (?, ?)",
+                ("2026-10-13", RecoveryDay(day=date(2026, 10, 13), sleep_hours=7).model_dump_json()))
+    con.commit()
+    con.close()
+
+    store = Storage(db)
+    assert len(store.get_activities()) == 1 and store.get_activities(scope="analysis") == []
+    assert store.get_recovery(date(2026, 10, 1), date(2026, 10, 31))[0].sleep_hours == 7
+    assert store.add_activities([a]) == 0                    # still a duplicate in the plan
+    assert store.add_activities([a], scope="analysis") == 1  # but new for Analyze
+    Storage(db)                                              # opening it again changes nothing

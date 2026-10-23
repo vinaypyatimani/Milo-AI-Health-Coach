@@ -33,6 +33,7 @@ AUTH_URL = "https://flow.polar.com/oauth2/authorization"
 TOKEN_URL = "https://polarremote.com/v2/oauth2/token"
 API = "https://www.polaraccesslink.com/v3"
 PROVIDER = "polar"
+SCOPE = "analysis"   # Polar is connected on the Analyze page, so its data goes there
 
 
 class PolarError(Exception):
@@ -192,14 +193,14 @@ def sync(store, conn: dict) -> dict:
             except AdapterError as e:
                 report["warnings"].append(f"Exercise {ex_id}: {e}")
                 continue
-        added = store.add_activities(result.activities)
+        added = store.add_activities(result.activities, scope=SCOPE)
         report["new_workouts"] += added
         report["skipped"] += len(result.activities) - added
         imported.add(ex_id)
     try:
         days = _recovery(_get_json(token, "/users/sleep"), _get_json(token, "/users/nightly-recharge"))
         if days:
-            store.upsert_recovery(days)
+            store.upsert_recovery(days, scope=SCOPE)
         report["recovery_days"] = len(days)
     except PolarError as e:  # sleep data is a bonus; workouts were imported anyway
         report["warnings"].append(f"Sleep data: {e}")

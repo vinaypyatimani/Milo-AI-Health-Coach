@@ -11,9 +11,11 @@ const TYPES: SessionType[] = ["run", "walk", "cycling", "swim", "strength", "mob
 const today = localToday; // the user's date, not UTC (matters just after midnight)
 
 /** After new data arrives, everything that depends on it refreshes itself. */
-export const dataChanged = () => invalidate("activities", "metrics:", "progress", "analysis:");
+export const dataChanged = () => invalidate("activities", "metrics:", "progress");
+/** Analyze has its own data, so only its numbers refresh. */
+export const analysisDataChanged = () => invalidate("analysis:");
 
-export function UploadCard({ notify }: { notify: (m: string) => void }) {
+export function UploadCard({ notify, scope = "plan" }: { notify: (m: string) => void; scope?: "plan" | "analysis" }) {
   const [report, setReport] = useState<UploadReport | null>(null);
   const [uploading, setUploading] = useState(false);
   const [over, setOver] = useState(false);
@@ -24,11 +26,11 @@ export function UploadCard({ notify }: { notify: (m: string) => void }) {
     if (!files.length) return;
     setUploading(true); setError(null);
     try {
-      const r = await api.upload(files);
+      const r = await api.upload(files, scope);
       setReport(r);
       const added = r.files.reduce((n, f) => n + (f.ok ? f.activities_added : 0), 0);
       notify(`${added} workout${added === 1 ? "" : "s"} imported`);
-      dataChanged();
+      if (scope === "plan") dataChanged(); else analysisDataChanged();
     } catch (e) { setError((e as Error).message); } finally { setUploading(false); }
   };
 

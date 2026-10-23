@@ -10,7 +10,7 @@ export default function DataPage({ notify }: { notify: (m: string) => void }) {
       <header className="page-head">
         <div>
           <h1>Tracker data</h1>
-          <p className="lede">Export workouts from your watch or app and drop them here. Milo compares them with your plan.</p>
+          <p className="lede">Workouts for your plan: Milo compares them with it on the Week and Progress pages. To look at other training without a plan, use Analyze; its data stays separate.</p>
         </div>
       </header>
       <div className="modules">

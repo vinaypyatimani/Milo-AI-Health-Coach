@@ -31,11 +31,14 @@ CREATE TABLE IF NOT EXISTS activities (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     start_time TEXT NOT NULL,
     data TEXT NOT NULL,
-    fingerprint TEXT NOT NULL UNIQUE
+    fingerprint TEXT NOT NULL UNIQUE,
+    scope TEXT NOT NULL DEFAULT 'plan'      -- 'plan' (Data page) or 'analysis' (Analyze page)
 );
 CREATE TABLE IF NOT EXISTS recovery (
-    day TEXT PRIMARY KEY,
-    data TEXT NOT NULL
+    scope TEXT NOT NULL DEFAULT 'plan',
+    day TEXT NOT NULL,
+    data TEXT NOT NULL,
+    PRIMARY KEY (scope, day)
 );
 CREATE TABLE IF NOT EXISTS video_cache (
     query TEXT PRIMARY KEY,
@@ -66,6 +69,23 @@ class Storage:
         # lock (several video lookups at once used to fail with "API misuse").
         self._lock = threading.RLock()
         self._conn.executescript(_SCHEMA)
+        self._migrate()
+
+    def _migrate(self) -> None:
+        """Databases from before Analyze had no 'scope': their data belongs to the plan."""
+        with self._tx() as c:
+            cols = {r["name"] for r in c.execute("PRAGMA table_info(activities)")}
+            if "scope" not in cols:
+                c.execute("ALTER TABLE activities ADD COLUMN scope TEXT NOT NULL DEFAULT 'plan'")
+            cols = {r["name"] for r in c.execute("PRAGMA table_info(recovery)")}
+            if "scope" not in cols:   # the key changes from (day) to (scope, day): rebuild the table
+                c.executescript("""
+                    CREATE TABLE recovery_new (scope TEXT NOT NULL DEFAULT 'plan', day TEXT NOT NULL,
+                                               data TEXT NOT NULL, PRIMARY KEY (scope, day));
+                    INSERT INTO recovery_new (scope, day, data) SELECT 'plan', day, data FROM recovery;
+                    DROP TABLE recovery;
+                    ALTER TABLE recovery_new RENAME TO recovery;
+                """)
 
     @contextmanager
     def _tx(self) -> Iterator[sqlite3.Connection]:
@@ -107,38 +127,48 @@ class Storage:
         return [dict(r) for r in self._all("SELECT id, created_at, reason FROM plans ORDER BY id DESC")]
 
     # ---- activities --------------------------------------------------------
-    def add_activities(self, activities: list[Activity]) -> int:
-        """Insert activities, skipping duplicates. Returns number added."""
+    # Two separate sets: "plan" (tracked against the training plan: Week,
+    # Progress, check-ins) and "analysis" (the Analyze page). The same workout
+    # can be in both; neither page sees the other's data.
+    def add_activities(self, activities: list[Activity], scope: str = "plan") -> int:
+        """Insert activities, skipping duplicates within the scope. Returns number added."""
         added = 0
+        prefix = "" if scope == "plan" else f"{scope}|"   # plan keys keep their old format
         with self._tx() as c:
             for a in activities:
-                fp = f"{a.type}|{a.start_time.isoformat(timespec='minutes')}|{round(a.duration_min)}"
+                fp = f"{prefix}{a.type}|{a.start_time.isoformat(timespec='minutes')}|{round(a.duration_min)}"
                 cur = c.execute(
-                    "INSERT OR IGNORE INTO activities (start_time, data, fingerprint) VALUES (?, ?, ?)",
-                    (a.start_time.isoformat(), a.model_dump_json(), fp),
+                    "INSERT OR IGNORE INTO activities (start_time, data, fingerprint, scope) VALUES (?, ?, ?, ?)",
+                    (a.start_time.isoformat(), a.model_dump_json(), fp, scope),
                 )
                 added += cur.rowcount
         return added
 
-    def get_activities(self, start: date | None = None, end: date | None = None
-                       ) -> list[tuple[int, Activity]]:
-        q, args = "SELECT id, data FROM activities", []
+    def get_activities(self, start: date | None = None, end: date | None = None,
+                       scope: str = "plan") -> list[tuple[int, Activity]]:
+        q, args = "SELECT id, data FROM activities WHERE scope = ?", [scope]
         if start and end:
-            q += " WHERE substr(start_time, 1, 10) BETWEEN ? AND ?"
-            args = [start.isoformat(), end.isoformat()]
+            q += " AND substr(start_time, 1, 10) BETWEEN ? AND ?"
+            args += [start.isoformat(), end.isoformat()]
         q += " ORDER BY start_time"
         return [(r["id"], Activity.model_validate_json(r["data"])) for r in self._all(q, args)]
+
+    def delete_scope(self, scope: str) -> None:
+        """Remove every workout and recovery day of one scope (Analyze's Reset)."""
+        with self._tx() as c:
+            c.execute("DELETE FROM activities WHERE scope = ?", (scope,))
+            c.execute("DELETE FROM recovery WHERE scope = ?", (scope,))
 
     def delete_activity(self, activity_id: int) -> bool:
         with self._tx() as c:
             return c.execute("DELETE FROM activities WHERE id = ?", (activity_id,)).rowcount > 0
 
     # ---- recovery ----------------------------------------------------------
-    def upsert_recovery(self, days: list[RecoveryDay]) -> int:
+    def upsert_recovery(self, days: list[RecoveryDay], scope: str = "plan") -> int:
         with self._tx() as c:
             for d in days:
-                existing = c.execute("SELECT data FROM recovery WHERE day = ?",
-                                     (d.day.isoformat(),)).fetchone()
+                existing = c.execute("SELECT data FROM recovery WHERE scope = ? AND day = ?",
+                                     (scope, d.day.isoformat())).fetchone()
                 if existing:  # merge: keep old values where the new one is missing
                     old = RecoveryDay.model_validate_json(existing["data"])
                     d = RecoveryDay(
@@ -148,13 +178,13 @@ class Storage:
                         hrv_ms=d.hrv_ms if d.hrv_ms is not None else old.hrv_ms,
                         source=d.source or old.source,
                     )
-                c.execute("INSERT OR REPLACE INTO recovery (day, data) VALUES (?, ?)",
-                          (d.day.isoformat(), d.model_dump_json()))
+                c.execute("INSERT OR REPLACE INTO recovery (scope, day, data) VALUES (?, ?, ?)",
+                          (scope, d.day.isoformat(), d.model_dump_json()))
         return len(days)
 
-    def get_recovery(self, start: date, end: date) -> list[RecoveryDay]:
-        rows = self._all("SELECT data FROM recovery WHERE day BETWEEN ? AND ? ORDER BY day",
-                         (start.isoformat(), end.isoformat()))
+    def get_recovery(self, start: date, end: date, scope: str = "plan") -> list[RecoveryDay]:
+        rows = self._all("SELECT data FROM recovery WHERE scope = ? AND day BETWEEN ? AND ? ORDER BY day",
+                         (scope, start.isoformat(), end.isoformat()))
         return [RecoveryDay.model_validate_json(r["data"]) for r in rows]
 
     # ---- conversations -------------------------------------------------------
