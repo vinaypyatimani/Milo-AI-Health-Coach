@@ -10,11 +10,12 @@ import queue
 import shutil
 import tempfile
 import threading
+import urllib.parse
 from datetime import date, datetime
 from pathlib import Path
 from typing import Literal, Optional
 
-from fastapi import FastAPI, File, HTTPException, Query, UploadFile
+from fastapi import FastAPI, File, HTTPException, Query, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, RedirectResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
@@ -23,9 +24,10 @@ from pydantic import BaseModel, Field
 from milo import config
 from milo.adapters import SUPPORTED_EXTENSIONS, AdapterError, parse_file
 from milo.coach import Coach, today
-from milo.exports import plan_to_pdf, plan_to_xlsx
+from milo.exports import plan_to_pdf, plan_to_xlsx, report_to_pdf
 from milo.llm import LLMError
 from milo.schemas import Activity, RecoveryDay, SessionType, UserProfile
+from milo.connect import polar
 from milo.storage import Storage
 from milo.videos import find_videos
 
@@ -54,7 +56,8 @@ class MessageIn(BaseModel):
 
 
 class ChatIn(BaseModel):
-    mode: Literal["coaching", "checkin"]
+    mode: Literal["coaching", "checkin", "analysis"]
+    days: int = Field(default=56, ge=0, le=3650)   # analysis period; 0 = all data
     week: Optional[int] = Field(default=None, ge=1)
     text: Optional[str] = Field(default=None, max_length=4000)  # None = start a new conversation
 
@@ -137,10 +140,95 @@ def clear_plan():
 
 
 @app.delete("/api/conversations/{mode}")
-def clear_conversation(mode: Literal["coaching", "checkin"], week: Optional[int] = None):
+def clear_conversation(mode: Literal["coaching", "checkin", "analysis"], week: Optional[int] = None):
     if mode == "checkin" and week is None:
         raise HTTPException(400, "A check-in conversation needs ?week=")
     coach.clear_conversation(mode, week)
+    return {"ok": True}
+
+
+# ---- Analyze mode ---------------------------------------------------------------------
+@app.get("/api/analysis")
+def analysis(days: int = Query(56, ge=0, le=3650)):
+    """The report numbers (for charts); days=0 analyzes all data. No AI involved."""
+    return coach.analysis(days or None)
+
+
+@app.get("/api/analysis/conversation")
+def analysis_conversation():
+    return coach.analysis_conversation()
+
+
+@app.get("/api/analysis/report.pdf")
+def analysis_report_pdf():
+    found = coach.analysis_report()
+    if found is None:
+        raise HTTPException(404, "No report yet. Ask Milo to analyze your training first.")
+    stats, text = found
+    pdf = report_to_pdf(stats, text, store.get_profile())
+    name = f"milo-report-{stats['period']['to']}.pdf"
+    return Response(pdf, media_type="application/pdf",
+                    headers={"Content-Disposition": f'attachment; filename="{name}"'})
+
+
+# ---- device connections (Polar) -------------------------------------------------------
+def _public_url(request: Request) -> str:
+    if config.PUBLIC_URL:
+        return config.PUBLIC_URL
+    proto = request.headers.get("x-forwarded-proto", request.url.scheme)   # Render sits behind a proxy
+    return f"{proto}://{request.headers.get('host', request.url.netloc)}"
+
+
+@app.get("/api/connect")
+def connections():
+    conn = store.get_connection(polar.PROVIDER)
+    return {"polar": {"available": polar.available(), "connected": conn is not None,
+                      "connected_at": conn and conn.get("connected_at"), "last_sync": conn and conn.get("last_sync"),
+                      "imported": len(conn.get("imported", [])) if conn else 0}}
+
+
+@app.get("/api/connect/polar/start", include_in_schema=False)
+def polar_start(request: Request, consent: str = ""):
+    if not polar.available():
+        raise HTTPException(503, "Polar isn't set up on this server (POLAR_CLIENT_ID / POLAR_CLIENT_SECRET).")
+    if consent != "yes":
+        raise HTTPException(400, "Please agree to the data-sharing note first.")
+    return RedirectResponse(polar.auth_url(f"{_public_url(request)}/api/connect/polar/callback"))
+
+
+@app.get("/api/connect/polar/callback", include_in_schema=False)
+def polar_callback(request: Request, code: str = "", state: str = "", error: str = ""):
+    def back(**q):
+        return RedirectResponse("/#analyze?" + urllib.parse.urlencode(q))
+    if error or not code:
+        return back(polar_error=error or "Polar didn't send a sign-in code.")
+    if not polar.check_state(state):
+        return back(polar_error="The sign-in link expired. Please try again.")
+    try:
+        conn = polar.exchange_code(code, f"{_public_url(request)}/api/connect/polar/callback")
+    except (polar.PolarError, OSError, KeyError, ValueError) as e:
+        return back(polar_error=str(e) or "Polar sign-in failed.")
+    store.save_connection(polar.PROVIDER, conn)
+    return back(connected="polar")
+
+
+@app.post("/api/connect/polar/sync")
+def polar_sync():
+    conn = store.get_connection(polar.PROVIDER)
+    if conn is None:
+        raise HTTPException(409, "Polar isn't connected.")
+    try:
+        return polar.sync(store, conn)
+    except (polar.PolarError, OSError) as e:
+        raise HTTPException(502, str(e)) from e
+
+
+@app.delete("/api/connect/polar")
+def polar_disconnect():
+    conn = store.get_connection(polar.PROVIDER)
+    if conn:
+        polar.disconnect(conn)
+        store.delete_connection(polar.PROVIDER)
     return {"ok": True}
 
 
@@ -195,7 +283,7 @@ def chat_stream(body: ChatIn):
     halfway, for example when the page is reloaded."""
     if body.text is not None and not body.text.strip():
         raise HTTPException(400, "Message is empty.")
-    events = _llm_guard(coach.stream, body.mode, body.week, body.text)
+    events = _llm_guard(coach.stream, body.mode, body.week, body.text, body.days or None)
     q: queue.Queue = queue.Queue()
 
     def produce():
@@ -301,6 +389,9 @@ def videos(q: str = Query(..., min_length=2, max_length=120)):
 @app.delete("/api/data")
 def delete_all_data():
     """GDPR: permanently delete the profile, plans, tracker data and chats."""
+    conn = store.get_connection(polar.PROVIDER)
+    if conn:
+        polar.disconnect(conn)   # also revoke Milo's access at Polar
     store.delete_all()
     return {"ok": True}
 

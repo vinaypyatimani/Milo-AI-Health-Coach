@@ -42,6 +42,10 @@ CREATE TABLE IF NOT EXISTS video_cache (
     items TEXT NOT NULL,
     fetched_at TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS connections (
+    provider TEXT PRIMARY KEY,     -- "polar"
+    data TEXT NOT NULL             -- token, user id, imported ids (encrypt this for production)
+);
 CREATE TABLE IF NOT EXISTS conversations (
     key TEXT PRIMARY KEY,          -- "coaching" or "checkin:<week>"
     messages TEXT NOT NULL,
@@ -173,9 +177,11 @@ class Storage:
         with self._tx() as c:
             c.execute("DELETE FROM plans")
 
-    def delete_conversations(self) -> None:
+    def delete_conversations(self, keep: tuple[str, ...] = ()) -> None:
         with self._tx() as c:
-            c.execute("DELETE FROM conversations")
+            marks = ",".join("?" * len(keep))
+            c.execute(f"DELETE FROM conversations WHERE key NOT IN ({marks})" if keep
+                      else "DELETE FROM conversations", keep)
 
     # ---- how-to video search results (saves the YouTube quota) ---------------
     def get_video_cache(self, query: str) -> list[dict] | None:
@@ -187,8 +193,22 @@ class Storage:
             c.execute("INSERT OR REPLACE INTO video_cache (query, items, fetched_at) VALUES (?, ?, ?)",
                       (query, json.dumps(items), datetime.now().isoformat(timespec="seconds")))
 
+    # ---- device connections ----------------------------------------------------
+    def get_connection(self, provider: str) -> dict | None:
+        row = self._one("SELECT data FROM connections WHERE provider = ?", (provider,))
+        return json.loads(row["data"]) if row else None
+
+    def save_connection(self, provider: str, data: dict) -> None:
+        with self._tx() as c:
+            c.execute("INSERT OR REPLACE INTO connections (provider, data) VALUES (?, ?)",
+                      (provider, json.dumps(data)))
+
+    def delete_connection(self, provider: str) -> None:
+        with self._tx() as c:
+            c.execute("DELETE FROM connections WHERE provider = ?", (provider,))
+
     # ---- GDPR: delete everything ---------------------------------------------
     def delete_all(self) -> None:
         with self._tx() as c:
-            for table in ("profile", "plans", "activities", "recovery", "conversations", "video_cache"):
+            for table in ("profile", "plans", "activities", "recovery", "conversations", "video_cache", "connections"):
                 c.execute(f"DELETE FROM {table}")

@@ -98,3 +98,10 @@
   .chat-intro { margin: 0; }
   .usage { display: none; }
 }
+
+/* headings and numbered lists in Milo's replies (the Analyze report) */
+.bubble .md-h { font-size: 0.98rem; font-weight: 650; margin: 16px 0 6px; }
+.bubble .md-h:first-child { margin-top: 0; }
+.bubble ol { margin: 0; padding-left: 22px; }
+.bubble p + ol, .bubble ol + p, .bubble .md-h + p { margin-top: 6px; }
+.bubble ul + .md-h, .bubble ol + .md-h, .bubble p + .md-h { margin-top: 16px; }

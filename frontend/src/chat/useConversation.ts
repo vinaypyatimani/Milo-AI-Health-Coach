@@ -4,7 +4,7 @@ import { getQueryData, invalidate, setQueryData, useQuery } from "../lib/query";
 import type { ChatMessage, ChatTarget } from "../lib/types";
 
 export const conversationKey = (t: ChatTarget) =>
-  t.mode === "coaching" ? "conv:coaching" : `conv:checkin:${t.week}`;
+  t.mode === "checkin" ? `conv:checkin:${t.week}` : `conv:${t.mode}`;
 
 /** Total tokens and cost of a conversation, from the usage saved on each reply. */
 export function totalUsage(messages: ChatMessage[]) {

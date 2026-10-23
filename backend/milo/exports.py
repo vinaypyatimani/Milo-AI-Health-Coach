@@ -211,3 +211,116 @@ def plan_to_pdf(plan: TrainingPlan, profile: UserProfile | None = None) -> bytes
               P("Milo is a coach, not a doctor. For pain, symptoms or medical conditions, see a professional.", small)]
     doc.build(story)
     return buf.getvalue()
+
+
+# ---------------------------------------------------------------------------
+# Analysis report (Analyze page)
+# ---------------------------------------------------------------------------
+def _inline_md(text: str) -> str:
+    """Escape for reportlab and turn **bold** and *italic* into tags."""
+    import re
+
+    safe = text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+    safe = re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", safe)
+    return re.sub(r"(?<!\*)\*(?!\s)(.+?)(?<!\s)\*(?!\*)", r"<i>\1</i>", safe)
+
+
+def report_to_pdf(stats: dict, report_md: str, profile: UserProfile | None = None) -> bytes:
+    """Milo's written report plus the key numbers, as a printable PDF."""
+    import re
+
+    from reportlab.lib import colors
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+    from reportlab.lib.units import mm
+    from reportlab.platypus import ListFlowable, ListItem, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+
+    buf = BytesIO()
+    doc = SimpleDocTemplate(buf, pagesize=A4, leftMargin=18 * mm, rightMargin=18 * mm,
+                            topMargin=16 * mm, bottomMargin=16 * mm, title="Training report", author="Milo")
+    ss = getSampleStyleSheet()
+    h1 = ParagraphStyle("h1", parent=ss["Heading1"], fontSize=18, spaceAfter=2)
+    h2 = ParagraphStyle("h2", parent=ss["Heading2"], fontSize=12.5, spaceBefore=12, spaceAfter=4,
+                        textColor=colors.HexColor("#" + ACCENT))
+    body = ParagraphStyle("b", parent=ss["BodyText"], fontSize=10, leading=14)
+    small = ParagraphStyle("s", parent=body, fontSize=8.5, leading=11, textColor=colors.HexColor("#6B7385"))
+
+    p = stats["period"]
+    who = f" · {profile.name}" if profile and profile.name else ""
+    story = [Paragraph("Training report", h1),
+             Paragraph(f"{p['from']} to {p['to']} ({p['days']} days){who} · made with Milo", small)]
+
+    # Milo's text: headings, bullets, numbered items, paragraphs
+    items: list = []
+    numbered = False
+
+    def flush():
+        nonlocal items
+        if items:
+            story.append(ListFlowable([ListItem(Paragraph(_inline_md(t), body), leftIndent=12) for t in items],
+                                      bulletType="1" if numbered else "bullet", start="1" if numbered else None,
+                                      leftIndent=14, bulletFontSize=9))
+            items = []
+
+    for line in report_md.splitlines():
+        s = line.strip()
+        bullet = re.match(r"^[-*•]\s+(.*)", s)
+        num = re.match(r"^\d+[.)]\s+(.*)", s)
+        if bullet or num:
+            if items and numbered != bool(num):
+                flush()
+            numbered = bool(num)
+            items.append((bullet or num).group(1))
+            continue
+        flush()
+        if not s:
+            continue
+        if s.startswith("#"):
+            story.append(Paragraph(_inline_md(s.lstrip("#").strip()), h2))
+        else:
+            story.append(Paragraph(_inline_md(s), body))
+    flush()
+
+    # Key numbers, straight from the analysis (not from the model's text)
+    t = stats.get("totals") or {}
+    rows = [["Sessions", str(t.get("sessions", "–"))], ["Hours", str(t.get("hours", "–"))],
+            ["Sessions per week", str(t.get("sessions_per_week", "–"))],
+            ["Distance", f"{t.get('distance_km', 0)} km"]]
+    if stats.get("intensity"):
+        i = stats["intensity"]
+        rows.append(["Easy / moderate / hard", f"{i['easy_pct']}% / {i['moderate_pct']}% / {i['hard_pct']}%"])
+    if stats.get("recovery") and stats["recovery"].get("avg_sleep_hours"):
+        r = stats["recovery"]
+        rows.append(["Average sleep", f"{r['avg_sleep_hours']} h"])
+        if r.get("resting_hr_avg"):
+            rows.append(["Resting heart rate", f"{r['resting_hr_avg']} bpm"])
+    story += [Paragraph("Key numbers", h2), _kv_table(rows, Table, TableStyle, colors, mm)]
+
+    weekly = stats.get("weekly") or []
+    if weekly:
+        wrows = [["Week of", "Sessions", "Minutes", "Distance (km)"]] + [
+            [w["week_start"], str(w["sessions"]), str(w["minutes"]), str(w["distance_km"] or "")] for w in weekly]
+        wt = Table(wrows, colWidths=[40 * mm, 30 * mm, 30 * mm, 35 * mm], repeatRows=1)
+        wt.setStyle(TableStyle([
+            ("FONTSIZE", (0, 0), (-1, -1), 9), ("TEXTCOLOR", (0, 0), (-1, 0), colors.HexColor("#6B7385")),
+            ("LINEBELOW", (0, 0), (-1, 0), 0.8, colors.HexColor("#" + ACCENT)),
+            ("LINEBELOW", (0, 1), (-1, -1), 0.25, colors.HexColor("#E3E7EF")),
+            ("ALIGN", (1, 0), (-1, -1), "RIGHT"),
+        ]))
+        story += [Paragraph("Week by week", h2), wt]
+
+    story += [Spacer(1, 6 * mm),
+              Paragraph("Milo is a coach, not a doctor. For pain, symptoms or medical conditions, see a professional.",
+                        small)]
+    doc.build(story)
+    return buf.getvalue()
+
+
+def _kv_table(rows, Table, TableStyle, colors, mm):
+    t = Table(rows, colWidths=[60 * mm, 60 * mm])
+    t.setStyle(TableStyle([
+        ("FONTSIZE", (0, 0), (-1, -1), 9.5), ("TEXTCOLOR", (0, 0), (0, -1), colors.HexColor("#6B7385")),
+        ("LINEBELOW", (0, 0), (-1, -1), 0.25, colors.HexColor("#E3E7EF")),
+        ("TOPPADDING", (0, 0), (-1, -1), 4), ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+    ]))
+    return t

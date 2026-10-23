@@ -52,3 +52,9 @@ APPLE_HEALTH_LOOKBACK_DAYS = int(os.getenv("MILO_APPLE_LOOKBACK_DAYS", "120"))
 # How-to videos for exercises. With a YouTube Data API key the app shows the
 # top video inline; without one it links to a YouTube search instead.
 YOUTUBE_API_KEY = os.getenv("YOUTUBE_API_KEY", "").strip()
+
+# Connect a Polar account on the Analyze page (optional). Register a client at
+# https://admin.polaraccesslink.com with the callback {PUBLIC_URL}/api/connect/polar/callback.
+POLAR_CLIENT_ID = os.getenv("POLAR_CLIENT_ID", "").strip()
+POLAR_CLIENT_SECRET = os.getenv("POLAR_CLIENT_SECRET", "").strip()
+PUBLIC_URL = os.getenv("PUBLIC_URL", "").strip().rstrip("/")   # e.g. https://milo-coach.onrender.com

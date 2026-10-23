@@ -11,7 +11,7 @@ const TYPES: SessionType[] = ["run", "walk", "cycling", "swim", "strength", "mob
 const today = localToday; // the user's date, not UTC (matters just after midnight)
 
 /** After new data arrives, everything that depends on it refreshes itself. */
-const dataChanged = () => invalidate("activities", "metrics:", "progress");
+export const dataChanged = () => invalidate("activities", "metrics:", "progress", "analysis:");
 
 export function UploadCard({ notify }: { notify: (m: string) => void }) {
   const [report, setReport] = useState<UploadReport | null>(null);
@@ -48,18 +48,36 @@ export function UploadCard({ notify }: { notify: (m: string) => void }) {
         <input ref={fileRef} type="file" multiple hidden accept=".fit,.gpx,.tcx,.zip,.xml,.csv"
                onChange={(e) => { upload(Array.from(e.target.files ?? [])); e.target.value = ""; }} />
       </div>
-      {report && (
-        <ul className="rows" style={{ marginTop: 12 }}>
-          {report.files.map((f) => (
-            <li key={f.file}>
-              <span className="grow">{f.file}</span>
-              {f.ok
-                ? <span className="muted small">{f.activities_added} added{f.duplicates_skipped ? `, ${f.duplicates_skipped} already here` : ""}{f.recovery_days ? `, ${f.recovery_days} days of recovery data` : ""}</span>
-                : <span className="small tone-urgent">{f.error}</span>}
-            </li>
-          ))}
-        </ul>
-      )}
+      {report && (() => {
+        const ok = report.files.filter((f) => f.ok);
+        const added = ok.reduce((n, f) => n + f.activities_added, 0);
+        const dupes = ok.reduce((n, f) => n + f.duplicates_skipped, 0);
+        const days = ok.reduce((n, f) => n + f.recovery_days, 0);
+        const failed = report.files.length - ok.length;
+        const list = (
+          <ul className="rows" style={{ marginTop: 12 }}>
+            {report.files.map((f) => (
+              <li key={f.file}>
+                <span className="grow">{f.file}</span>
+                {f.ok
+                  ? <span className="muted small">{f.activities_added} added{f.duplicates_skipped ? `, ${f.duplicates_skipped} already here` : ""}{f.recovery_days ? `, ${f.recovery_days} days of recovery data` : ""}</span>
+                  : <span className="small tone-urgent">{f.error}</span>}
+              </li>
+            ))}
+          </ul>
+        );
+        // Many files at once (a whole folder): one summary line, details on demand.
+        return report.files.length <= 5 ? list : (
+          <details className="upload-summary">
+            <summary>
+              {report.files.length} files: {added} workout{added === 1 ? "" : "s"} added
+              {dupes ? `, ${dupes} already here` : ""}{days ? `, ${days} days of recovery data` : ""}
+              {failed ? <span className="tone-urgent">, {failed} couldn't be read</span> : ""}
+            </summary>
+            {list}
+          </details>
+        );
+      })()}
       {error && <div style={{ marginTop: 12 }}><Banner tone="error">{error}</Banner></div>}
     </Card>
   );

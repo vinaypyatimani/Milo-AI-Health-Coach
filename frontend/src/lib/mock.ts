@@ -5,10 +5,11 @@
  * and streamed word by word like the real thing.
  */
 import type {
-  ActivityItem, ChatMessage, ChatTarget, ManualActivity, NutritionPlan, PlanResponse, Profile, ProgressWeek,
+  ActivityItem, Analysis, ChatMessage, ChatTarget, Connections, ManualActivity, NutritionPlan, PlanResponse, Profile, ProgressWeek,
   StreamDone, StreamHandlers, TrainingPlan, UploadReport, Usage, VideoResult, WeekMetrics,
 } from "./types";
 import data from "./demoData";
+import demoAnalysis from "./demoAnalysis";
 
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const clone = <T,>(x: T): T => JSON.parse(JSON.stringify(x));
@@ -89,6 +90,45 @@ const steps: Record<string, number> = { coaching: COACHING_SCRIPT.length };
 
 const URGENT = /chest|faint|dizz|breath/i;
 
+// Analyze page: written from the real numbers in demoAnalysis["56"] (running test set).
+const REPORT = `## Summary
+You're training steadily for a 10K: about **3.9 sessions and 173 minutes a week** over 8 weeks, mostly running with some strength work. Three quarters of your time was easy, which is a strong base, but in one week your easy runs crept too fast.
+
+## At a glance
+- **31 sessions, 23.1 hours**: 3.9 sessions and 173 minutes a week
+- **Mix:** running 85% (24 runs, 192.1 km, 24 km a week), strength 15% (7 sessions)
+- **Intensity:** 75% easy, 13% moderate, 12% hard
+- **Running:** average pace 6:07 /km, longest run 11.66 km on 12 Dec, fastest 10.04 km at 5:19 /km on 19 Dec
+- **Recovery:** 7.1 h of sleep on average, resting heart rate 54.7 bpm and steady
+
+## What's going well
+- **Consistency:** 3 or more sessions in 7 of 7 full weeks, and never more than 2 days off in a row.
+- **A good aerobic base:** 75% of your training was easy, right where endurance coaches want it.
+- **Steady load:** the last 7 days (164 min) were close to your 4-week average (175 min), and your biggest weekly increase was a safe 10%.
+
+## What to watch
+- **Week of 30 Nov:** only 60% of your training was easy (usually 75%). Easy runs done too fast add fatigue without much extra fitness.
+- **Running economy is flat (-1.4%):** not a problem, but more truly easy running usually improves it over time.
+
+## Suggestions
+1. **Keep easy runs truly easy:** Zone 2, where you can talk in full sentences. Slow down on hills rather than letting your heart rate climb.
+2. **Keep the 10% rule:** grow weekly time by no more than about 10% (from 173 minutes, that's under 20 extra minutes).
+3. **Keep one strength session a week** (you average 0.9): it protects knees and hips as the running grows.
+4. **Protect your sleep** before long runs and races. Your 7.1 h average is fine; don't let it slip.
+
+## Next week
+- **Mon:** rest
+- **Tue:** easy run, 40 min, Zone 2
+- **Wed:** strength, 30 min
+- **Thu:** intervals: 5 × 3 min hard, 2 min easy jog
+- **Fri:** rest or a 20-minute walk
+- **Sat:** long run, 70 min, easy
+- **Sun:** mobility, 20 min
+
+Want a full plan built from this? Open the Plan page and choose *Build a plan with Milo*.`;
+
+const analysisConv: ChatMessage[] = [];
+
 function applyWeek2Changes() {
   if (!plan) return;
   plan = clone(plan);
@@ -119,9 +159,21 @@ export const mockApi = {
   saveProfile: async (p: Profile) => { await wait(250); profile = p; return p; },
   getPlan: async (): Promise<PlanResponse> => ({ plan, current_week: plan ? 2 : null, history }),
 
-  conversation: async (t: ChatTarget) => clone(conversations[t.mode === "coaching" ? "coaching" : `checkin:${t.week}`] ?? []),
+  conversation: async (t: ChatTarget) =>
+    clone(t.mode === "analysis" ? analysisConv : conversations[t.mode === "coaching" ? "coaching" : `checkin:${t.week}`] ?? []),
 
   chatStream: async (t: ChatTarget, text: string | null, handlers: StreamHandlers): Promise<StreamDone> => {
+    if (t.mode === "analysis") {
+      if (text === null) analysisConv.length = 0;
+      else analysisConv.push({ role: "user", content: text });
+      handlers.onMeta?.({ safety: [], urgent_banner: null });
+      const reply = text === null ? REPORT
+        : "Good question. In this demo the replies are scripted, so I can't answer that one, but with the real backend I'd answer from the same numbers as the report.";
+      await streamText(reply, handlers);
+      const message: ChatMessage = { role: "assistant", content: reply, usage: usageFor(analysisConv, reply + JSON.stringify(demoAnalysis["56"])) };
+      analysisConv.push(message);
+      return { reply, plan_saved: false, plan_error: null, safety: [], urgent_banner: null, message };
+    }
     const key = t.mode === "coaching" ? "coaching" : `checkin:${t.week}`;
     if (text === null) { conversations[key] = []; steps[key] = 0; }
     const conv = (conversations[key] ??= []);
@@ -195,11 +247,18 @@ export const mockApi = {
     return { ok: true };
   },
   clearConversation: async (t: ChatTarget) => {
+    if (t.mode === "analysis") { analysisConv.length = 0; return { ok: true }; }
     const key = t.mode === "coaching" ? "coaching" : `checkin:${t.week}`;
     delete conversations[key]; delete steps[key];
     return { ok: true };
   },
   exportUrl: (fmt: "pdf" | "xlsx") => `#download-${fmt}`,
+  analysis: async (days: number): Promise<Analysis> => { await wait(150); return demoAnalysis[String(days)]; },
+  reportPdfUrl: () => "#report-pdf",
+  connections: async (): Promise<Connections> => ({ polar: { available: false, connected: false, connected_at: null, last_sync: null, imported: 0 } }),
+  polarConnectUrl: () => "#analyze",
+  polarSync: async () => ({ new_workouts: 0, skipped: 0, recovery_days: 0, warnings: [] }),
+  polarDisconnect: async () => ({ ok: true }),
   // The demo has no server (and no YouTube key), so it links to a YouTube search.
   videos: async (q: string): Promise<VideoResult> => ({
     query: q, items: [], source: "link",

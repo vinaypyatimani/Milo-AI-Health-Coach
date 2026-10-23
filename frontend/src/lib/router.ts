@@ -6,11 +6,12 @@ export type Route =
   | { page: "plan" }
   | { page: "data" }
   | { page: "progress" }
-  | { page: "profile" };
+  | { page: "profile" }
+  | { page: "analyze" };
 
 export function parseRoute(hash: string): Route {
-  const [page, arg] = hash.replace(/^#\/?/, "").split("/");
-  if (page === "data" || page === "progress" || page === "profile") return { page };
+  const [page, arg] = hash.replace(/^#\/?/, "").split("?")[0].split("/");   // "#analyze?connected=polar" -> analyze
+  if (page === "data" || page === "progress" || page === "profile" || page === "analyze") return { page };
   if (page === "week") {
     const week = Number(arg);
     return { page: "week", week: Number.isInteger(week) && week > 0 ? week : null };

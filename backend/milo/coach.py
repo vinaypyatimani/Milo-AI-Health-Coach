@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Iterator
 
 from . import llm, safety
+from .analysis import analyze
 from .metrics import compute_week_metrics, progress_overview
 from .plan_parser import find_plan_block, parse_plan, strip_plan_block
 from .pricing import add_usage
@@ -23,6 +24,8 @@ from .storage import Storage
 
 PROMPT_DIR = Path(__file__).parent / "prompts"
 COACHING_TRIGGER = "Hi Milo, I'd like to start a new training plan."
+ANALYSIS_TRIGGER = "Please analyze my training and write my report."
+ANALYSIS_DEFAULT_DAYS = 56
 
 
 def today() -> date:
@@ -54,6 +57,11 @@ class Coach:
 
     # ---- shared -----------------------------------------------------------
     def _system_prompt(self, mode: str, metrics: dict | None) -> str:
+        if mode == "analysis":
+            return render("analysis_system.md",
+                          today=f"{today().isoformat()} ({today().strftime('%A')})",
+                          user_profile_json=_json(self.store.get_profile()),
+                          analysis_json=_json(metrics))
         return render(
             "coach_system.md",
             mode=mode,
@@ -77,14 +85,14 @@ class Coach:
         return msgs
 
     def _turn_events(self, key: str, mode: str, text: str, metrics: dict | None,
-                     hidden: bool = False, plan_reason: str = "") -> Iterator[dict]:
+                     hidden: bool = False, plan_reason: str = "", extra: dict | None = None) -> Iterator[dict]:
         """One conversation turn as a stream of events:
         meta (safety) -> delta (pieces of the reply) ... -> done (result)."""
         conv = self.store.get_conversation(key)
         flags = safety.check(text) if not hidden else []
         urgent = safety.is_urgent(flags)
         conv.append({"role": "user", "content": text, "hidden": hidden,
-                     "safety": [f.__dict__ for f in flags]})
+                     "safety": [f.__dict__ for f in flags], **(extra or {})})
         yield {"type": "meta", "safety": [f.__dict__ for f in flags],
                "urgent_banner": safety.URGENT_BANNER if urgent else None}
 
@@ -95,7 +103,8 @@ class Coach:
             parts.append(piece)
             yield {"type": "delta", "text": piece}
         raw = "".join(parts)
-        plan, error = parse_plan(raw)
+        # Analyze mode never changes the plan, even if the model writes JSON.
+        plan, error = parse_plan(raw) if mode != "analysis" else (None, None)
         plan_source = raw  # the text the plan was read from
 
         if error:  # one repair attempt: show the model its mistake
@@ -168,11 +177,14 @@ class Coach:
                 done = event
         return {k: done[k] for k in ("reply", "plan_saved", "plan_error", "safety", "urgent_banner")}
 
-    def stream(self, mode: str, week: int | None = None, text: str | None = None) -> Iterator[dict]:
+    def stream(self, mode: str, week: int | None = None, text: str | None = None,
+               days: int | None = ANALYSIS_DEFAULT_DAYS) -> Iterator[dict]:
         """Streaming entry point for both modes. text=None starts a new conversation.
 
         Checks (plan exists, week is valid) run before the stream starts, so the
         API can answer with a normal error code instead of a broken stream."""
+        if mode == "analysis":
+            return self._analysis_stream(text, days)
         if mode == "coaching":
             if text is None:
                 self.store.delete_conversation("coaching")
@@ -199,15 +211,47 @@ class Coach:
                  "usage": m.get("usage")}
                 for m in conv if not m.get("hidden")]
 
+    # ---- Analyze mode -----------------------------------------------------------
+    def analysis(self, days: int | None = ANALYSIS_DEFAULT_DAYS) -> dict:
+        """Report numbers from all tracker data; days=None means everything."""
+        acts = [a for _, a in self.store.get_activities()]
+        rec = self.store.get_recovery(date(1970, 1, 1), date(2999, 12, 31))
+        return analyze(acts, rec, self.store.get_profile(), days, today())
+
+    def _analysis_stream(self, text: str | None, days: int | None) -> Iterator[dict]:
+        """A new report (text=None) computes the numbers once and stores them with
+        the conversation, so follow-up questions use exactly the same numbers."""
+        if text is None:
+            stats = self.analysis(days)
+            if not stats["data"]["activities"]:
+                raise LookupError("No workouts to analyze yet. Upload some files first.")
+            self.store.delete_conversation("analysis")
+            return self._turn_events("analysis", "analysis", ANALYSIS_TRIGGER, stats, hidden=True,
+                                     extra={"analysis": stats, "days": days})
+        conv = self.store.get_conversation("analysis")
+        stats = next((m["analysis"] for m in conv if m.get("analysis")), None) or self.analysis(days)
+        return self._turn_events("analysis", "analysis", text, stats)
+
+    def analysis_conversation(self) -> list[dict]:
+        return self.public_conversation(self.store.get_conversation("analysis"))
+
+    def analysis_report(self) -> tuple[dict, str] | None:
+        """The numbers and Milo's written report from the latest analysis."""
+        conv = self.store.get_conversation("analysis")
+        stats = next((m["analysis"] for m in conv if m.get("analysis")), None)
+        report = next((m["content"] for m in conv if m["role"] == "assistant"), None)
+        return (stats, report) if stats and report else None
+
     # ---- starting over ---------------------------------------------------------
     def clear_conversation(self, mode: str, week: int | None = None) -> None:
-        self.store.delete_conversation("coaching" if mode == "coaching" else f"checkin:{week}")
+        key = {"coaching": "coaching", "analysis": "analysis"}.get(mode, f"checkin:{week}")
+        self.store.delete_conversation(key)
 
     def clear_plan(self) -> None:
         """Remove every plan version and all conversations (they refer to the plan).
         Profile and tracker data stay."""
         self.store.delete_plans()
-        self.store.delete_conversations()
+        self.store.delete_conversations(keep=("analysis",))  # the analysis doesn't use the plan
 
     # ---- Coaching Mode ------------------------------------------------------
     def coaching_conversation(self) -> list[dict]:

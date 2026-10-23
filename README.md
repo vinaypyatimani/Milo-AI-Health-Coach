@@ -37,13 +37,13 @@ milo-coach/
 │   │   └── prompts/            coach_system.md, judge.md
 │   ├── evaluation/             scenarios, LLM-as-a-judge, hallucinated-number check
 │   ├── scripts/                sample data generator, demo seeding
-│   └── tests/                  55 tests, run without an API key
+│   └── tests/                  66 tests, run without an API key
 ├── frontend/
 │   └── src/
 │       ├── App.tsx             shell: top bar, pages, start over
 │       ├── chat/               central chat: start button, streaming, usage meter, start over
 │       ├── modules/            plan calendar, exercise videos, week strip, stats, nutrition, uploads, chart
-│       ├── pages/              Plan (start page), Week, Data, Progress, Profile
+│       ├── pages/              Plan (start page), Week, Analyze, Data, Progress, Profile
 │       ├── lib/                API client, streaming (SSE), data cache, routing, plan diff
 │       └── styles/             design tokens, shell, modules, chat
 ├── sample_data/                synthetic tracker files (no real health data)
@@ -164,6 +164,10 @@ Interactive docs at `/docs`.
 | DELETE | `/api/plan` | Start over and clear the plan (plan versions + conversations; profile and activities stay) |
 | DELETE | `/api/conversations/{mode}` | Start over and keep the plan (`?week=N` for a check-in) |
 | GET | `/api/videos?q=` | How-to videos for an exercise (YouTube, cached; a search link without a key) |
+| GET | `/api/analysis?days=56` | Analyze: the report numbers (no AI); `days=0` = all data |
+| POST | `/api/chat/stream` with `mode: "analysis"` | Milo writes the report, then answers follow-up questions |
+| GET | `/api/analysis/report.pdf` | The latest report as a PDF |
+| GET / POST / DELETE | `/api/connect`, `/api/connect/polar/start · /callback · /sync` | Connect Polar, import, disconnect |
 | DELETE | `/api/data` | Delete everything (GDPR) |
 
 ---
@@ -191,6 +195,26 @@ Set `MILO_MODEL` and the matching API key as environment variables on the platfo
 
 ### Option C: static demo only
 `npm run build:demo` produces one HTML file that runs without a backend. Host it anywhere (GitHub Pages, Netlify drop) as a portfolio preview.
+
+### Analyze: reports without a plan
+
+The Analyze tab works for anyone with tracker data, even without a plan.
+`milo/analysis.py` calculates everything: volume, sport mix, heart-rate
+zones, load (last 7 days vs the 4 weeks before), spikes, consistency,
+running economy, sleep, resting HR and HRV, plus rule-based findings.
+Milo only explains those numbers and suggests what to do next (the same
+"the model never calculates" rule as the check-in). Follow-up questions
+reuse the numbers the report was written from.
+
+**Connecting devices.** Only Polar connects directly, for good reasons:
+Strava's API policy (June 2026) forbids putting Strava data into an AI
+model, and Garmin has paused new developer applications. Polar's free
+AccessLink API needs a client (`POLAR_CLIENT_ID`, `POLAR_CLIENT_SECRET`,
+`PUBLIC_URL`, see `.env.example`), the user's explicit consent (the app
+asks), and a privacy policy that says the data goes to the AI model.
+Polar shares the last 30 days, so users sync now and then. Tokens are
+stored in SQLite as-is: encrypt them before real production use. Every
+other brand works by exporting files; the page explains how.
 
 ### How-to videos
 

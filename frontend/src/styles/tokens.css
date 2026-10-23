@@ -34,6 +34,12 @@
   --top-h: 56px;
   --col: 760px;
 
+  /* Analyze charts (validated with the dataviz palette checker: colorblind-safe
+     adjacent pairs; low-contrast slots always come with labels or the table) */
+  --sport-run: #2a78d6; --sport-strength: #eb6834; --sport-cycling: #1baf7a; --sport-walk: #eda100;
+  --sport-swim: #e87ba4; --sport-mobility: #008300; --sport-other: #a3a9b6;
+  --zone-1: #86b6ef; --zone-2: #5598e7; --zone-3: #2a78d6; --zone-4: #1c5cab; --zone-5: #104281;
+
   color-scheme: light;
 }
 
@@ -58,6 +64,9 @@
     --urgent-soft: #351c1c;
     --new: #7c97ff;
     --new-soft: #1a2142;
+    --sport-run: #3987e5; --sport-strength: #d95926; --sport-cycling: #199e70; --sport-walk: #c98500;
+    --sport-swim: #d55181; --sport-mobility: #008300; --sport-other: #5a6072;
+    --zone-1: #184f95; --zone-2: #256abf; --zone-3: #3987e5; --zone-4: #6da7ec; --zone-5: #9ec5f4;
     color-scheme: dark;
   }
 }
@@ -82,5 +91,8 @@
   --urgent-soft: #351c1c;
   --new: #7c97ff;
   --new-soft: #1a2142;
+  --sport-run: #3987e5; --sport-strength: #d95926; --sport-cycling: #199e70; --sport-walk: #c98500;
+  --sport-swim: #d55181; --sport-mobility: #008300; --sport-other: #5a6072;
+  --zone-1: #184f95; --zone-2: #256abf; --zone-3: #3987e5; --zone-4: #6da7ec; --zone-5: #9ec5f4;
   color-scheme: dark;
 }

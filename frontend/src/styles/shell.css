@@ -43,7 +43,8 @@
 @media (max-width: 640px) {
   .topbar { gap: 16px; padding: 0 16px; }
   .logo-word { display: none; }
-  .tabs { gap: 16px; }
+  .tabs { gap: 14px; }
+  .tab { font-size: 0.92rem; }
   .page { padding: 24px 16px 80px; }
   h1 { font-size: 1.5rem; }
   .form-grid { grid-template-columns: 1fr; }

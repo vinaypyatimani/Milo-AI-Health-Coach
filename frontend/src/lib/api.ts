@@ -1,5 +1,5 @@
 import type {
-  ActivityItem, ChatMessage, ChatTarget, ManualActivity, PlanResponse, Profile, ProgressWeek,
+  ActivityItem, Analysis, ChatMessage, ChatTarget, Connections, SyncReport, ManualActivity, PlanResponse, Profile, ProgressWeek,
   StreamDone, StreamHandlers, StreamMeta, UploadReport, VideoResult, WeekMetrics,
 } from "./types";
 import { postEvents } from "./sse";
@@ -26,7 +26,11 @@ const json = (body: unknown) => JSON.stringify(body);
 function chatStream(target: ChatTarget, text: string | null, handlers: StreamHandlers): Promise<StreamDone> {
   return new Promise<StreamDone>((resolve, reject) => {
     let finished = false;
-    const body = { mode: target.mode, week: target.mode === "checkin" ? target.week : null, text };
+    const body = {
+      mode: target.mode, text,
+      week: target.mode === "checkin" ? target.week : null,
+      days: target.mode === "analysis" ? target.days : undefined,
+    };
     postEvents(`${BASE}/api/chat/stream`, body, (type, data) => {
       if (type === "meta") handlers.onMeta?.(data as unknown as StreamMeta);
       else if (type === "delta") handlers.onDelta?.(String(data.text ?? ""));
@@ -46,7 +50,8 @@ export const realApi = {
   getPlan: () => request<PlanResponse>("/api/plan"),
 
   conversation: (target: ChatTarget) =>
-    request<ChatMessage[]>(target.mode === "coaching" ? "/api/coaching" : `/api/checkin/${target.week}`),
+    request<ChatMessage[]>(target.mode === "coaching" ? "/api/coaching"
+      : target.mode === "analysis" ? "/api/analysis/conversation" : `/api/checkin/${target.week}`),
   chatStream,
 
   weekMetrics: (week: number) => request<WeekMetrics>(`/api/weeks/${week}/metrics`),
@@ -68,7 +73,15 @@ export const realApi = {
   clearPlan: () => request<{ ok: boolean }>("/api/plan", { method: "DELETE" }),
   /** Start over: clear one conversation, keep the plan. */
   clearConversation: (t: ChatTarget) =>
-    request<{ ok: boolean }>(t.mode === "coaching" ? "/api/conversations/coaching" : `/api/conversations/checkin?week=${t.week}`, { method: "DELETE" }),
+    request<{ ok: boolean }>(t.mode === "checkin" ? `/api/conversations/checkin?week=${t.week}` : `/api/conversations/${t.mode}`, { method: "DELETE" }),
+
+  /** Analyze page: the numbers (no AI), the report PDF, and device connections. */
+  analysis: (days: number) => request<Analysis>(`/api/analysis?days=${days}`),
+  reportPdfUrl: () => `${BASE}/api/analysis/report.pdf`,
+  connections: () => request<Connections>("/api/connect"),
+  polarConnectUrl: () => `${BASE}/api/connect/polar/start?consent=yes`,
+  polarSync: () => request<SyncReport>("/api/connect/polar/sync", { method: "POST" }),
+  polarDisconnect: () => request<{ ok: boolean }>("/api/connect/polar", { method: "DELETE" }),
   /** How-to videos for one exercise (YouTube, cached on the server). */
   videos: (q: string) => request<VideoResult>(`/api/videos?q=${encodeURIComponent(q)}`),
   /** Link for downloading the plan as a PDF or an Excel file. */

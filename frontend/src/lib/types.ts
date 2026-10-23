@@ -165,7 +165,34 @@ export interface ManualActivity {
 }
 
 // ---- streaming chat -----------------------------------------------------------
-export type ChatTarget = { mode: "coaching" } | { mode: "checkin"; week: number };
+export type ChatTarget =
+  | { mode: "coaching" }
+  | { mode: "checkin"; week: number }
+  | { mode: "analysis"; days: number };   // days = 0: all data
+
+/** Analyze page: every number is computed by the backend (milo/analysis.py). */
+export interface AnalysisFlag { code: string; text: string }
+export interface AnalysisWeek { week_start: string; minutes: number; sessions: number; distance_km: number; by_type: Record<string, number>; easy_pct: number | null; partial: boolean }
+export interface Analysis {
+  period: { from: string; to: string; days: number; weeks: number };
+  data: { activities: number; with_heart_rate: number; recovery_days: number; max_hr_used: number | null; max_hr_source: string; days_since_last_workout: number | null };
+  totals?: { sessions: number; hours: number; distance_km: number; active_days: number; sessions_per_week: number; minutes_per_week: number };
+  by_sport?: { type: SessionType; sessions: number; minutes: number; distance_km: number | null; avg_hr: number | null; share_pct: number }[];
+  weekly?: AnalysisWeek[];
+  load?: { last_7_days_min: number; prior_4_week_avg_min: number | null; ratio: number | null; largest_week_increase_pct: number | null; largest_week_increase_week: string | null };
+  intensity?: { zone_minutes: Record<string, number>; zone_pct: Record<string, number>; easy_pct: number; moderate_pct: number; hard_pct: number } | null;
+  running?: { runs: number; km: number; km_per_week: number; avg_pace: string | null; longest_run_km: number; longest_run_date: string; fastest_pace_5k_plus: string | null; fastest_run_date: string | null; fastest_run_km: number | null; efficiency_change_pct: number | null } | null;
+  strength?: { sessions: number; per_week: number };
+  consistency?: { longest_gap_days: number; weeks_with_3_plus_sessions: number; full_weeks: number };
+  recovery?: { avg_sleep_hours: number | null; nights_under_6h: number; nights_with_sleep_data: number; resting_hr_avg: number | null; resting_hr_change_bpm: number | null; hrv_avg_ms: number | null; hrv_change_pct: number | null } | null;
+  highlights?: { what: string; date: string; type?: string; minutes?: number; km?: number }[];
+  flags: AnalysisFlag[];
+}
+
+export interface Connections {
+  polar: { available: boolean; connected: boolean; connected_at: string | null; last_sync: string | null; imported: number };
+}
+export interface SyncReport { new_workouts: number; skipped: number; recovery_days: number; warnings: string[] }
 
 export interface StreamMeta { safety: SafetyFlag[]; urgent_banner: string | null }
 

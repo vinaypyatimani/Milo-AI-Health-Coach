@@ -14,10 +14,12 @@ import { WeekPage } from "./pages/WeekPage";
 const DataPage = lazy(() => import("./pages/DataPage"));
 const ProgressPage = lazy(() => import("./pages/ProgressPage"));
 const ProfilePage = lazy(() => import("./pages/ProfilePage"));
+const AnalyzePage = lazy(() => import("./pages/AnalyzePage"));
 
 const NAV = [
   { page: "plan", label: "Plan", needsPlan: false },
   { page: "week", label: "Week", needsPlan: true },
+  { page: "analyze", label: "Analyze", needsPlan: false },
   { page: "data", label: "Data", needsPlan: false },
   { page: "progress", label: "Progress", needsPlan: true },
   { page: "profile", label: "Profile", needsPlan: false },
@@ -76,6 +78,7 @@ export default function App() {
     content = <WeekPage plan={plan!} week={shownWeek} changed={changed} onPlanSaved={onPlanSaved}
                         onStartOver={(week, clear) => startOver({ mode: "checkin", week }, clear)} />;
   else if (route.page === "data") content = <DataPage notify={notify} />;
+  else if (route.page === "analyze") content = <AnalyzePage notify={notify} />;
   else if (route.page === "progress" && hasPlan) content = <ProgressPage plan={plan!} />;
   else if (route.page === "profile") content = <ProfilePage notify={notify} onDeleted={onDeleted} />;
   else content = <PlanPage plan={plan ?? null} changed={changed} onPlanSaved={onPlanSaved}
